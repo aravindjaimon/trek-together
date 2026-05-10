@@ -1,0 +1,3 @@
+{
+  "extends": "@trek-together/config/tsconfig.base.json"
+}

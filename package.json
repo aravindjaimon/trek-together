@@ -1,0 +1,42 @@
+{
+  "name": "trek-together",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "dev:web": "turbo -F web dev",
+    "dev:server": "turbo -F server dev",
+    "db:push": "turbo -F @trek-together/db db:push",
+    "db:studio": "turbo -F @trek-together/db db:studio",
+    "db:generate": "turbo -F @trek-together/db db:generate",
+    "db:migrate": "turbo -F @trek-together/db db:migrate",
+    "db:start": "turbo -F @trek-together/db db:start",
+    "db:watch": "turbo -F @trek-together/db db:watch",
+    "db:stop": "turbo -F @trek-together/db db:stop",
+    "db:down": "turbo -F @trek-together/db db:down",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@trek-together/env": "workspace:*",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@trek-together/config": "workspace:*",
+    "@types/node": "catalog:",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
+    "turbo": "^2.9.16",
+    "typescript": "catalog:"
+  },
+  "lint-staged": {
+    "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,vue,astro,svelte}": ""
+  },
+  "packageManager": "pnpm@11.9.0"
+}

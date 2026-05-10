@@ -1,0 +1,24 @@
+{
+  "name": "@trek-together/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@trek-together/db": "workspace:*",
+    "@trek-together/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@trek-together/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
