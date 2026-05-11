@@ -10,6 +10,11 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
+    "lint": "biome check",
+    "lint:fix": "biome check --write",
+    "format": "biome format --write",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
     "db:push": "turbo -F @trek-together/db db:push",
@@ -28,15 +33,23 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
     "@trek-together/config": "workspace:*",
     "@types/node": "catalog:",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.7",
     "turbo": "^2.9.16",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^4.1.9"
   },
   "lint-staged": {
-    "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,vue,astro,svelte}": ""
+    "*": [
+      "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
+    ]
   },
-  "packageManager": "pnpm@11.9.0"
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=24.17.0",
+    "pnpm": ">=11.9.0"
+  }
 }
