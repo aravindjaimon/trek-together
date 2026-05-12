@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import { auth } from "@trek-together/auth";
+import prisma from "@trek-together/db";
 import { fromNodeHeaders } from "better-auth/node";
 import type { Request } from "express";
 
@@ -11,8 +13,9 @@ export async function createContext(opts: CreateContextOptions) {
     headers: fromNodeHeaders(opts.req.headers),
   });
   return {
-    auth: null,
+    db: prisma,
     session,
+    requestId: randomUUID(),
   };
 }
 

@@ -66,6 +66,10 @@ app.get("/", (_req, res) => {
   res.status(200).send("OK");
 });
 
-app.listen(3000, () => {
-  console.log("Server is running on http://localhost:3000");
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
+app.listen(env.PORT, () => {
+  console.log(`Server is running on http://localhost:${env.PORT}`);
 });
