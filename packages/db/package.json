@@ -11,6 +11,7 @@
   },
   "scripts": {
     "db:push": "prisma db push",
+    "db:ping": "tsx src/ping.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@trek-together/config": "workspace:*",
     "prisma": "6.19.3",
+    "tsx": "^4.22.4",
     "typescript": "catalog:"
   }
 }
