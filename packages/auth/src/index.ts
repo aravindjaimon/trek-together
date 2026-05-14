@@ -5,6 +5,10 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 
 export function createAuth() {
   const prisma = createPrismaClient();
+  // Cross-site cookies (sameSite "none" + secure) require HTTPS, so they never
+  // persist over plain http://localhost. Relax them outside production so the
+  // local dev flow works; keep them strict in production.
+  const isProd = env.NODE_ENV === "production";
 
   return betterAuth({
     database: prismaAdapter(prisma, {
@@ -19,9 +23,9 @@ export function createAuth() {
     baseURL: env.BETTER_AUTH_URL,
     advanced: {
       defaultCookieAttributes: {
-        sameSite: "none",
-        secure: true,
         httpOnly: true,
+        sameSite: isProd ? "none" : "lax",
+        secure: isProd,
       },
     },
     plugins: [],
