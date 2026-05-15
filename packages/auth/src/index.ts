@@ -5,10 +5,12 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 
 export function createAuth() {
   const prisma = createPrismaClient();
-  // Cross-site cookies (sameSite "none" + secure) require HTTPS, so they never
-  // persist over plain http://localhost. Relax them outside production so the
-  // local dev flow works; keep them strict in production.
-  const isProd = env.NODE_ENV === "production";
+  // Drive cookie hardening off the actual transport (the Better-Auth base URL),
+  // not NODE_ENV. Secure / cross-site cookies require HTTPS and never persist over
+  // plain http://localhost; tying them to the URL scheme is fail-secure — a
+  // deployed HTTPS base URL always yields secure cookies even if NODE_ENV is
+  // misconfigured, while local http stays relaxed so the dev flow works.
+  const isSecureOrigin = env.BETTER_AUTH_URL.startsWith("https://");
 
   return betterAuth({
     database: prismaAdapter(prisma, {
@@ -24,8 +26,8 @@ export function createAuth() {
     advanced: {
       defaultCookieAttributes: {
         httpOnly: true,
-        sameSite: isProd ? "none" : "lax",
-        secure: isProd,
+        sameSite: isSecureOrigin ? "none" : "lax",
+        secure: isSecureOrigin,
       },
     },
     plugins: [],
