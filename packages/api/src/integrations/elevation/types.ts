@@ -19,6 +19,18 @@ export interface ElevationPoint {
   dataset: string;
 }
 
+/**
+ * Shared contract implemented by every provider client (OpenTopoData, T1.1;
+ * Open-Elevation, T1.2). The cache wrapper (T1.5) and fallback (T1.6) depend on
+ * this interface rather than a concrete client, so they can switch providers
+ * without caring which one answers. `lookup` is a stateless single request —
+ * batching (≤100/req) and rate limiting (≤1 req/s) are layered on separately
+ * (T1.3).
+ */
+export interface ElevationProvider {
+  lookup(points: LatLng[]): Promise<ElevationPoint[]>;
+}
+
 export interface ElevationProviderErrorOptions {
   /** Provider that produced the failure, e.g. `"opentopodata"`. */
   provider: string;
