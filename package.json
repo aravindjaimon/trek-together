@@ -18,6 +18,7 @@
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
     "db:push": "turbo -F @trek-together/db db:push",
+    "db:setup-indexes": "turbo -F @trek-together/db db:setup-indexes",
     "db:ping": "turbo -F @trek-together/db db:ping",
     "db:studio": "turbo -F @trek-together/db db:studio",
     "db:generate": "turbo -F @trek-together/db db:generate",

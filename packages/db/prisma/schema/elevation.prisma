@@ -1,0 +1,35 @@
+/// Cache of resolved elevation points, keyed by quantised coordinates so nearby
+/// sample points collapse to one row and hit cache. The backbone of the §9
+/// headline optimisation (cold-vs-warm `routes.analyze`).
+///
+/// Indexes: the unique index on `key` is created by `prisma db push` (from
+/// `@unique`). The TTL index on `fetchedAt` cannot be expressed in Prisma and is
+/// created out-of-band by `packages/db/src/setup-indexes.ts` — which must run
+/// after every `db push`, since push can drop indexes it doesn't manage.
+model ElevationCache {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  /// Quantised cache key: "<datasetNamespace>:<qlat>,<qlng>" (1 arc-second grid).
+  key String @unique
+
+  /// Grid-centre coordinates for this key (WGS84 degrees).
+  lat Float
+  lng Float
+
+  /// Elevation in metres; null = outside the dataset's bounds (preserved, not 0).
+  elevationM Float?
+
+  /// Logical dataset namespace used in `key` (the configured primary dataset,
+  /// e.g. "srtm30m") — stable so fallback-served points share the primary's key.
+  dataset String
+
+  /// The provider/dataset that actually answered (provenance), e.g.
+  /// "opentopodata" or "open-elevation". Decoupled from `dataset` so a fallback
+  /// does not fragment the cache.
+  source String
+
+  /// Write time; drives the TTL index (30-day expiry).
+  fetchedAt DateTime @default(now())
+
+  @@map("elevationCache")
+}
