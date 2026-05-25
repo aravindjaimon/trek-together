@@ -2,7 +2,13 @@ import type { ElevationCacheRepo, ElevationCacheRow } from "../../data/elevation
 import { batchedLookup } from "./batched-lookup";
 import { QUANTISE_GRID_DEG } from "./constants";
 import { cacheKey, quantise } from "./quantise";
-import type { ElevationPoint, ElevationProvider, LatLng } from "./types";
+import {
+  type ElevationPoint,
+  type ElevationProvider,
+  ElevationProviderError,
+  ElevationUnavailableError,
+  type LatLng,
+} from "./types";
 
 export interface CacheStats {
   /** Unique quantised keys served from cache. */
@@ -26,6 +32,17 @@ export interface ElevationServiceConfig {
    * dataset, e.g. "srtm30m"). Stable regardless of which provider answers.
    */
   datasetNamespace: string;
+  /**
+   * Secondary provider tried when the primary errors/exhausts (T1.6). Omit to
+   * disable fallback.
+   */
+  fallbackProvider?: ElevationProvider;
+  /** Toggle fallback even when a `fallbackProvider` is supplied. Default true. */
+  fallbackEnabled?: boolean;
+  /** Request id for correlating provider-switch logs. */
+  requestId?: string;
+  /** Log sink for provider switches; defaults to `console.warn`. */
+  logger?: (message: string) => void;
   /** Quantisation grid in degrees. Defaults to {@link QUANTISE_GRID_DEG}. */
   gridDeg?: number;
   /** Overrides for the batched/rate-limited miss fetch (tests shrink these). */
@@ -42,6 +59,30 @@ export interface ElevationServiceConfig {
  */
 export function createElevationService(config: ElevationServiceConfig) {
   const gridDeg = config.gridDeg ?? QUANTISE_GRID_DEG;
+
+  function log(message: string) {
+    const prefix = config.requestId ? `[elevation ${config.requestId}] ` : "[elevation] ";
+    (config.logger ?? console.warn)(`${prefix}${message}`);
+  }
+
+  /**
+   * Fetch cache misses from the primary provider, falling back to the secondary
+   * on a provider error. A provider error from the last-resort provider
+   * propagates for the caller to degrade gracefully.
+   */
+  async function fetchMisses(coords: LatLng[]): Promise<ElevationPoint[]> {
+    const opts = { batchSize: config.batchSize, minIntervalMs: config.minIntervalMs };
+    try {
+      return await batchedLookup(config.provider, coords, opts);
+    } catch (primaryErr) {
+      const canFallback = config.fallbackEnabled !== false && config.fallbackProvider !== undefined;
+      if (!(primaryErr instanceof ElevationProviderError) || !canFallback) throw primaryErr;
+      log(
+        `primary provider "${primaryErr.provider}" failed (${primaryErr.message}); trying fallback`,
+      );
+      return await batchedLookup(config.fallbackProvider as ElevationProvider, coords, opts);
+    }
+  }
 
   async function getElevations(points: LatLng[]): Promise<GetElevationsResult> {
     if (points.length === 0) return { points: [], stats: { hits: 0, misses: 0 } };
@@ -70,10 +111,33 @@ export function createElevationService(config: ElevationServiceConfig) {
     const fetchedByKey = new Map<string, ElevationPoint>();
     if (missKeys.length > 0) {
       const missCoords = missKeys.map((key) => keyToCoord.get(key) as LatLng);
-      const fetched = await batchedLookup(config.provider, missCoords, {
-        batchSize: config.batchSize,
-        minIntervalMs: config.minIntervalMs,
-      });
+      let fetched: ElevationPoint[];
+      try {
+        fetched = await fetchMisses(missCoords);
+      } catch (err) {
+        if (!(err instanceof ElevationProviderError)) throw err;
+        // Graceful degradation: no provider could resolve the misses. Return the
+        // points we DID resolve from cache and flag the unresolved remainder.
+        const resolved = perInput
+          .map(({ key }, i) => {
+            const hit = cached.get(key);
+            return hit
+              ? {
+                  lat: points[i].lat,
+                  lng: points[i].lng,
+                  elevationM: hit.elevationM,
+                  dataset: hit.source,
+                }
+              : null;
+          })
+          .filter((p): p is ElevationPoint => p !== null);
+        log(`all providers failed; degrading to ${resolved.length} cached point(s)`);
+        throw new ElevationUnavailableError({
+          resolved,
+          unresolvedCount: missKeys.length,
+          cause: err,
+        });
+      }
 
       const rows: ElevationCacheRow[] = fetched.map((point, i) => {
         const key = missKeys[i];

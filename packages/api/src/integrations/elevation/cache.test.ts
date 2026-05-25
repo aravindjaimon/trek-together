@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { ElevationCacheRepo, ElevationCacheRow } from "../../data/elevation-cache.repo";
 import { createElevationService } from "./cache";
 import { cacheKey, quantise } from "./quantise";
-import type { ElevationPoint, LatLng } from "./types";
+import {
+  type ElevationPoint,
+  ElevationProviderError,
+  ElevationUnavailableError,
+  type LatLng,
+} from "./types";
 
 function inMemoryRepo() {
   const store = new Map<string, ElevationCacheRow>();
@@ -131,5 +136,80 @@ describe("createElevationService.getElevations", () => {
     expect(provider.lookup).toHaveBeenCalledTimes(0);
     expect(stats).toEqual({ hits: 1, misses: 0 });
     expect(points[0].elevationM).toBeNull();
+  });
+});
+
+/** Provider that always fails with a typed provider error. */
+function failingProvider(provider = "opentopodata") {
+  return {
+    lookup: vi.fn(async (): Promise<ElevationPoint[]> => {
+      throw new ElevationProviderError("quota exceeded", { provider, status: 429 });
+    }),
+  };
+}
+
+describe("createElevationService fallback + graceful degradation", () => {
+  it("falls back to the secondary provider and logs the switch with the request id", async () => {
+    const { repo } = inMemoryRepo();
+    const primary = failingProvider("opentopodata");
+    const secondary = countingProvider();
+    const logs: string[] = [];
+    const service = createElevationService({
+      repo,
+      provider: primary,
+      fallbackProvider: secondary,
+      datasetNamespace: "srtm30m",
+      minIntervalMs: 0,
+      requestId: "req-1",
+      logger: (m) => logs.push(m),
+    });
+
+    const { points } = await service.getElevations([p1]);
+
+    expect(primary.lookup).toHaveBeenCalled();
+    expect(secondary.lookup).toHaveBeenCalledTimes(1);
+    expect(points[0].elevationM).toBe(10);
+    expect(logs.some((l) => l.includes("req-1"))).toBe(true);
+  });
+
+  it("both providers fail: throws a user-safe ELEVATION_UNAVAILABLE with the cached partial", async () => {
+    const { repo } = inMemoryRepo();
+    // Prime p1 with a working provider so it is a cache hit later.
+    await makeService(repo, countingProvider()).getElevations([p1]);
+
+    const service = createElevationService({
+      repo,
+      provider: failingProvider("opentopodata"),
+      fallbackProvider: failingProvider("open-elevation"),
+      datasetNamespace: "srtm30m",
+      minIntervalMs: 0,
+      logger: () => {},
+    });
+
+    const error = await service.getElevations([p1, p2]).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ElevationUnavailableError);
+    const unavailable = error as ElevationUnavailableError;
+    expect(unavailable.code).toBe("ELEVATION_UNAVAILABLE");
+    expect(unavailable.unresolvedCount).toBe(1); // p2
+    expect(unavailable.resolved.map((p) => p.elevationM)).toEqual([10]); // p1 from cache
+    expect(unavailable.message).not.toMatch(/quota|429/); // no upstream detail leaked
+  });
+
+  it("does not fall back when fallback is disabled", async () => {
+    const { repo } = inMemoryRepo();
+    const secondary = countingProvider();
+    const service = createElevationService({
+      repo,
+      provider: failingProvider("opentopodata"),
+      fallbackProvider: secondary,
+      fallbackEnabled: false,
+      datasetNamespace: "srtm30m",
+      minIntervalMs: 0,
+      logger: () => {},
+    });
+
+    await expect(service.getElevations([p1])).rejects.toBeInstanceOf(ElevationUnavailableError);
+    expect(secondary.lookup).not.toHaveBeenCalled();
   });
 });

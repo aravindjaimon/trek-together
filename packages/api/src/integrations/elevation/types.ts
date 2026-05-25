@@ -55,3 +55,31 @@ export class ElevationProviderError extends Error {
     this.status = options.status;
   }
 }
+
+export interface ElevationUnavailableErrorOptions {
+  /** Points that WERE resolved (from cache), in input order — a partial result. */
+  resolved: ElevationPoint[];
+  /** How many requested points could not be resolved by any provider. */
+  unresolvedCount: number;
+  cause?: unknown;
+}
+
+/**
+ * Raised by the cache wrapper (T1.6) when cache misses cannot be fetched from
+ * any provider. Carries the points that *were* resolved from cache so the
+ * procedure can decide between a partial result and a hard failure. The message
+ * is deliberately user-safe (no upstream detail / stack) — the underlying
+ * provider error is attached as `cause` for server-side logging only.
+ */
+export class ElevationUnavailableError extends Error {
+  readonly code = "ELEVATION_UNAVAILABLE" as const;
+  readonly resolved: ElevationPoint[];
+  readonly unresolvedCount: number;
+
+  constructor(options: ElevationUnavailableErrorOptions) {
+    super("Elevation data is temporarily unavailable", { cause: options.cause });
+    this.name = "ElevationUnavailableError";
+    this.resolved = options.resolved;
+    this.unresolvedCount = options.unresolvedCount;
+  }
+}
