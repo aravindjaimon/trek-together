@@ -38,6 +38,10 @@
       "cache": false,
       "persistent": true
     },
+    "db:ui": {
+      "cache": false,
+      "persistent": true
+    },
     "db:stop": {
       "cache": false
     },

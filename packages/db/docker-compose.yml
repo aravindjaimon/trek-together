@@ -21,11 +21,23 @@ services:
         - mongosh
         - --quiet
         - --eval
-        - "try { rs.status().ok === 1 ? quit(0) : quit(1) } catch { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }); quit(1) }"
+        - "try { rs.status().ok === 1 ? quit(0) : quit(1) } catch { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongodb:27017' }] }); quit(1) }"
       interval: 10s
       timeout: 10s
       retries: 12
       start_period: 20s
+    restart: unless-stopped
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: trek-together-mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017
+    depends_on:
+      mongodb:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
