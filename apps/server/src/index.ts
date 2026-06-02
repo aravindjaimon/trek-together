@@ -70,6 +70,19 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+// Centralized error backstop (T3.4): anything that escapes the oRPC handlers
+// (e.g. an express.json body-parse error) is logged in full server-side and
+// returned to the client as a safe, generic envelope — never a stack trace
+// (PROJECT-SPEC.md §11). Typed oRPC errors are already serialized upstream.
+const errorHandler: express.ErrorRequestHandler = (err, req, res, _next) => {
+  console.error(`[server] unhandled error on ${req.method} ${req.path}:`, err);
+  if (res.headersSent) return;
+  res.status(500).json({
+    error: { code: "INTERNAL", message: "An unexpected error occurred." },
+  });
+};
+app.use(errorHandler);
+
 app.listen(env.PORT, () => {
   console.log(`Server is running on http://localhost:${env.PORT}`);
 });
