@@ -48,6 +48,7 @@ export async function buildProfile(
   for (let i = 0; i < densified.length; i++) {
     const d = densified[i];
     const e = points[i];
+    if (!d || !e) continue; // unreachable: lengths verified equal above
 
     if (e.elevationM === null) {
       throw new Error(
@@ -68,18 +69,22 @@ export async function buildProfile(
 
   validateProfile(profile);
 
+  const last = densified[densified.length - 1];
   return {
     profile,
-    totalDistanceM: densified[densified.length - 1].distanceAlongM,
+    totalDistanceM: last ? last.distanceAlongM : 0,
   };
 }
 
 function validateProfile(profile: ProfilePoint[]): void {
   for (let i = 1; i < profile.length; i++) {
-    if (profile[i].distanceAlongM < profile[i - 1].distanceAlongM) {
+    const curr = profile[i];
+    const prev = profile[i - 1];
+    if (!curr || !prev) continue; // unreachable: i ∈ [1, length)
+    if (curr.distanceAlongM < prev.distanceAlongM) {
       throw new Error(
         `distanceAlongM is not monotonically non-decreasing at index ${i}: ` +
-          `${profile[i - 1].distanceAlongM} → ${profile[i].distanceAlongM}`,
+          `${prev.distanceAlongM} → ${curr.distanceAlongM}`,
       );
     }
   }

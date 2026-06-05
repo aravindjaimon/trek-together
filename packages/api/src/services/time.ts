@@ -35,8 +35,11 @@ export function toblerSeconds(profile: ProfilePoint[]): number {
   let totalS = 0;
 
   for (let i = 1; i < profile.length; i++) {
-    const dh = profile[i].distanceAlongM - profile[i - 1].distanceAlongM;
-    const de = profile[i].elevationM - profile[i - 1].elevationM;
+    const curr = profile[i];
+    const prev = profile[i - 1];
+    if (!curr || !prev) continue; // unreachable: i ∈ [1, length)
+    const dh = curr.distanceAlongM - prev.distanceAlongM;
+    const de = curr.elevationM - prev.elevationM;
 
     if (dh < 0.5) {
       // Near-vertical guard: use fixed vertical rate

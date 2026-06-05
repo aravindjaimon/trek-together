@@ -56,7 +56,9 @@ function movingAverage(profile: ProfilePoint[], windowSize: number): ProfilePoin
     const start = Math.max(0, i - radius);
     const end = Math.min(profile.length - 1, i + radius);
     for (let j = start; j <= end; j++) {
-      sum += profile[j].elevationM;
+      const p = profile[j];
+      if (!p) continue; // unreachable: j ∈ [start, end] ⊆ [0, length)
+      sum += p.elevationM;
       count++;
     }
     return { ...point, elevationM: sum / count };
@@ -64,10 +66,13 @@ function movingAverage(profile: ProfilePoint[], windowSize: number): ProfilePoin
 }
 
 function applyMinChangeThreshold(profile: ProfilePoint[], thresholdM: number): ProfilePoint[] {
-  const out: ProfilePoint[] = [profile[0]];
+  const first = profile[0];
+  if (!first) return [];
+  const out: ProfilePoint[] = [first];
   for (let i = 1; i < profile.length; i++) {
     const prev = out[i - 1];
     const curr = profile[i];
+    if (!prev || !curr) continue; // unreachable: i ∈ [1, length)
     const delta = Math.abs(curr.elevationM - prev.elevationM);
     if (delta < thresholdM) {
       out.push({ ...curr, elevationM: prev.elevationM });

@@ -41,20 +41,22 @@ function lerp(a: number, b: number, t: number): number {
  * - Zero-length segments → skipped.
  */
 export function densify(path: LatLng[], spacingM = 60): DensifiedPoint[] {
-  if (path.length === 0) return [];
+  const first = path[0];
+  if (!first) return [];
   if (path.length === 1) {
-    return [{ ...path[0], distanceAlongM: 0 }];
+    return [{ ...first, distanceAlongM: 0 }];
   }
 
   const result: DensifiedPoint[] = [];
   let cumulative = 0;
 
   // Start vertex
-  result.push({ ...path[0], distanceAlongM: 0 });
+  result.push({ ...first, distanceAlongM: 0 });
 
   for (let i = 1; i < path.length; i++) {
     const prev = path[i - 1];
     const curr = path[i];
+    if (!prev || !curr) continue; // unreachable: i ∈ [1, length)
     const segDist = haversineM(prev, curr);
 
     if (segDist < 1e-6) {
@@ -89,8 +91,10 @@ export function densify(path: LatLng[], spacingM = 60): DensifiedPoint[] {
     } else {
       // Adjust the last interpolated point to be exactly the vertex
       const last = result[result.length - 1];
-      last.lat = curr.lat;
-      last.lng = curr.lng;
+      if (last) {
+        last.lat = curr.lat;
+        last.lng = curr.lng;
+      }
     }
   }
 

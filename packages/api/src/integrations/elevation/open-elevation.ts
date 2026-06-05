@@ -135,12 +135,22 @@ export function createOpenElevationProvider(config: OpenElevationConfig = {}): E
       );
     }
 
-    return points.map((point, index) => ({
-      lat: point.lat,
-      lng: point.lng,
-      elevationM: parsed.data.results[index].elevation,
-      dataset: SOURCE,
-    }));
+    return points.map((point, index) => {
+      const result = parsed.data.results[index];
+      if (!result) {
+        // unreachable: results length verified equal to points above
+        throw new ElevationProviderError(`Missing elevation result at index ${index}`, {
+          provider: PROVIDER,
+          status: response.status,
+        });
+      }
+      return {
+        lat: point.lat,
+        lng: point.lng,
+        elevationM: result.elevation,
+        dataset: SOURCE,
+      };
+    });
   }
 
   return { lookup };

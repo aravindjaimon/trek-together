@@ -20,7 +20,10 @@ export function cumulativeGainLoss(profile: ProfilePoint[]): GainLoss {
   let descentM = 0;
 
   for (let i = 1; i < profile.length; i++) {
-    const delta = profile[i].elevationM - profile[i - 1].elevationM;
+    const curr = profile[i];
+    const prev = profile[i - 1];
+    if (!curr || !prev) continue; // unreachable: i ∈ [1, length)
+    const delta = curr.elevationM - prev.elevationM;
     if (delta > 0) {
       ascentM += delta;
     } else {

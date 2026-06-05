@@ -86,7 +86,10 @@ export async function analyzeRoute(
 function guardSize(path: LatLng[], spacingM: number): void {
   let lengthM = 0;
   for (let i = 1; i < path.length; i++) {
-    lengthM += haversineM(path[i - 1], path[i]);
+    const prev = path[i - 1];
+    const curr = path[i];
+    if (!prev || !curr) continue; // unreachable: i ∈ [1, length)
+    lengthM += haversineM(prev, curr);
   }
   const estimatedPoints = Math.ceil(lengthM / spacingM) + path.length;
   if (estimatedPoints > MAX_PROFILE_POINTS) {

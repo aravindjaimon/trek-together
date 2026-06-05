@@ -121,10 +121,11 @@ export function createElevationService(config: ElevationServiceConfig) {
         const resolved = perInput
           .map(({ key }, i) => {
             const hit = cached.get(key);
-            return hit
+            const input = points[i];
+            return hit && input
               ? {
-                  lat: points[i].lat,
-                  lng: points[i].lng,
+                  lat: input.lat,
+                  lng: input.lng,
                   elevationM: hit.elevationM,
                   dataset: hit.source,
                 }
@@ -139,36 +140,44 @@ export function createElevationService(config: ElevationServiceConfig) {
         });
       }
 
-      const rows: ElevationCacheRow[] = fetched.map((point, i) => {
+      const rows: ElevationCacheRow[] = [];
+      for (let i = 0; i < fetched.length; i++) {
+        const point = fetched[i];
         const key = missKeys[i];
+        if (!point || key === undefined) continue; // unreachable: fetched aligns with missKeys
         fetchedByKey.set(key, point);
-        return {
+        rows.push({
           key,
           lat: point.lat,
           lng: point.lng,
           elevationM: point.elevationM,
           dataset: config.datasetNamespace,
           source: point.dataset, // the provider's reported dataset = provenance
-        };
-      });
+        });
+      }
       await config.repo.upsertMany(rows);
     }
 
     // 5. Merge back to original input order, carrying provenance in `dataset`.
     const out: ElevationPoint[] = perInput.map(({ key }, i) => {
+      const input = points[i];
+      if (!input) {
+        // unreachable: perInput is derived 1:1 from points
+        throw new Error(`Input point index ${i} out of range`);
+      }
       const hit = cached.get(key);
       if (hit) {
         return {
-          lat: points[i].lat,
-          lng: points[i].lng,
+          lat: input.lat,
+          lng: input.lng,
           elevationM: hit.elevationM,
           dataset: hit.source,
         };
       }
       const miss = fetchedByKey.get(key) as ElevationPoint;
       return {
-        lat: points[i].lat,
-        lng: points[i].lng,
+        lat: input.lat,
+        lng: input.lng,
         elevationM: miss.elevationM,
         dataset: miss.dataset,
       };
