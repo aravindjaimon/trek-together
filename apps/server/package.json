@@ -3,6 +3,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
+    "bench:analyze": "tsx scripts/bench-analyze.ts",
     "build": "tsdown",
     "check-types": "tsc -b",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
