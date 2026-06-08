@@ -1,0 +1,58 @@
+/// A saved trek route: the full `routes.analyze` result made durable so views and
+/// exports never recompute (PRD §11, PROJECT-SPEC.md §6).
+///
+/// Embed-vs-reference (a graded schema-design decision, see docs/decisions/data-model.md):
+///   - `path` is GeoJSON stored in a `Json` field — Prisma has no geometry type. Its
+///     `2dsphere` index can't be declared here either; it's created out-of-band by
+///     `packages/db/src/setup-indexes.ts` (run after every `db push`).
+///   - `elevationProfile` is **embedded** (composite type) — it's read together with the
+///     route, is bounded in size, and never queried independently.
+///   - the owner is **referenced** (`ownerId`, no relation) — independent lifecycle, and
+///     Mongo enforces no FK regardless.
+///
+/// `path` validity (GeoJSON LineString, [lng,lat] order) is enforced in app code (Zod +
+/// the geojson service), not by Prisma.
+
+/// One embedded elevation-profile sample: cumulative distance along the route and the
+/// (smoothed) elevation at that point. Mirrors the `routes.analyze` output profile.
+type ProfilePoint {
+  distanceAlongM Float
+  elevationM     Float
+}
+
+model Route {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  /// Owner (better-auth user id — a String, not ObjectId). Referenced, not related.
+  ownerId String
+
+  name        String
+  description String?
+
+  /// GeoJSON LineString: { type: "LineString", coordinates: [[lng,lat], ...] }.
+  path Json
+
+  /// Embedded, ordered elevation profile (post-smoothing).
+  elevationProfile ProfilePoint[]
+
+  /// Derived analysis (SI units), persisted so views/exports need no recompute.
+  distanceM        Float
+  ascentM          Float
+  descentM         Float
+  estTimeNaismithS Float
+  estTimeToblerS   Float
+  difficultyScore  Float
+  /// Shenandoah band; validated against the enum in app code (Zod), stored as String.
+  difficultyBand   String
+
+  /// Anonymous share-by-link visibility (PRD FR-6, A3). Private by default.
+  isPublic Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([isPublic])
+  @@index([difficultyScore])
+  @@map("routes")
+}
