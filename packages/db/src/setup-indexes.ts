@@ -13,8 +13,8 @@ dotenv.config({ path: envPath });
  * drop ones it doesn't manage (like a TTL index). Every createIndex here is
  * idempotent (fixed name + spec ⇒ no-op on re-run).
  *
- * Currently just the `elevationCache` TTL index (M1 / T1.4). The routes
- * `2dsphere` geo-index (T4.2) will be added here too.
+ * Covers the `elevationCache` TTL index (M1 / T1.4) and the routes `2dsphere`
+ * geo-index (T4.2) — neither is expressible in Prisma.
  */
 
 // 30-day TTL — SRTM is near-static, so a long TTL maximises cache hits while
@@ -27,7 +27,7 @@ async function main() {
   // Import the client only after env is loaded — it reads DATABASE_URL at module load.
   const { default: prisma } = await import("./index");
   try {
-    const result = await prisma.$runCommandRaw({
+    const cacheResult = await prisma.$runCommandRaw({
       createIndexes: "elevationCache",
       indexes: [
         {
@@ -37,7 +37,15 @@ async function main() {
         },
       ],
     });
-    console.log("elevationCache indexes ensured:", JSON.stringify(result));
+    console.log("elevationCache indexes ensured:", JSON.stringify(cacheResult));
+
+    // 2dsphere on routes.path — powers the M6 `$geoNear` explore query (T4.2/T6.1).
+    // GeoJSON in a Json field, so Prisma can't declare this; created here instead.
+    const routesResult = await prisma.$runCommandRaw({
+      createIndexes: "routes",
+      indexes: [{ key: { path: "2dsphere" }, name: "path_2dsphere" }],
+    });
+    console.log("routes indexes ensured:", JSON.stringify(routesResult));
   } finally {
     await prisma.$disconnect();
   }
