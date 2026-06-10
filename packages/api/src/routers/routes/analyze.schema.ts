@@ -37,20 +37,24 @@ export const analyzeInputSchema = z.object({
   spacingM: z.number().min(MIN_SPACING_M).max(MAX_SPACING_M).default(DEFAULT_SPACING_M),
 });
 
+/** Shared analysis-output pieces, reused by the persisted route schema (T4.4). */
+export const difficultyBandSchema = z.enum(DIFFICULTY_BANDS);
+export const elevationProfileSchema = z.array(
+  z.object({
+    distanceAlongM: z.number(),
+    elevationM: z.number(),
+  }),
+);
+
 export const analyzeOutputSchema = z.object({
-  elevationProfile: z.array(
-    z.object({
-      distanceAlongM: z.number(),
-      elevationM: z.number(),
-    }),
-  ),
+  elevationProfile: elevationProfileSchema,
   distanceM: z.number(),
   ascentM: z.number(),
   descentM: z.number(),
   estTimeNaismithS: z.number(),
   estTimeToblerS: z.number(),
   difficultyScore: z.number(),
-  difficultyBand: z.enum(DIFFICULTY_BANDS),
+  difficultyBand: difficultyBandSchema,
   /** Optional cache observability (T3.2) — required fields still match FR-3. */
   meta: z
     .object({

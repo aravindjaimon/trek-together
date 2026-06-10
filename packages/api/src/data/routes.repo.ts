@@ -1,5 +1,6 @@
 import prisma, { type PrismaClient } from "@trek-together/db";
 
+import type { DifficultyBand } from "../services/difficulty";
 import type { GeoJSONLineString } from "../services/geojson";
 
 /** One embedded elevation-profile sample (mirrors the Prisma `ProfilePoint` type). */
@@ -22,7 +23,7 @@ export interface RouteRecord {
   estTimeNaismithS: number;
   estTimeToblerS: number;
   difficultyScore: number;
-  difficultyBand: string;
+  difficultyBand: DifficultyBand;
   isPublic: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -86,7 +87,8 @@ function mapRoute(doc: RouteDoc): RouteRecord {
     estTimeNaismithS: doc.estTimeNaismithS,
     estTimeToblerS: doc.estTimeToblerS,
     difficultyScore: doc.difficultyScore,
-    difficultyBand: doc.difficultyBand,
+    // Stored as String in Mongo; the analysis writes only valid bands (T4.4).
+    difficultyBand: doc.difficultyBand as DifficultyBand,
     isPublic: doc.isPublic,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
