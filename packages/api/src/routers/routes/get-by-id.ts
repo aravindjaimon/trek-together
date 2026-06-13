@@ -1,5 +1,6 @@
 import { createPrismaRoutesRepo } from "../../data/routes.repo";
 import { publicProcedure } from "../../index";
+import { findVisibleRoute } from "./authz";
 import { getByIdInputSchema, routeSchema } from "./route.schema";
 
 /**
@@ -13,10 +14,8 @@ export const getById = publicProcedure
   .output(routeSchema)
   .handler(async ({ input, context, errors }) => {
     const repo = createPrismaRoutesRepo(context.db);
-    const route = await repo.findById(input.id);
-
-    const visible = route && (route.isPublic || route.ownerId === context.session?.user.id);
-    if (!visible) {
+    const route = await findVisibleRoute(repo, input.id, context.session?.user.id);
+    if (!route) {
       throw errors.NOT_FOUND();
     }
     return route;

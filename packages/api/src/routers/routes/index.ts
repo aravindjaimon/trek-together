@@ -1,6 +1,7 @@
 import { analyze } from "./analyze";
 import { create } from "./create";
 import { remove } from "./delete";
+import { exportItinerary } from "./export";
 import { getById } from "./get-by-id";
 import { listMine } from "./list-mine";
 import { update } from "./update";
@@ -13,4 +14,5 @@ export const routesRouter = {
   listMine,
   update,
   remove,
+  exportItinerary,
 };

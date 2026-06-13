@@ -183,4 +183,41 @@ describe("routes persistence + authz", () => {
     const err = await anon.routes.getById({ id: "not-an-objectid" }).catch((e) => e);
     expect(code(err)).toBe("BAD_REQUEST");
   });
+
+  describe("exportItinerary (T5.4)", () => {
+    it("exports a public route anonymously as GPX and JSON", async () => {
+      const r = await alice.routes.create({ path, name: "Ridge", spacingM: 100, isPublic: true });
+
+      const gpx = await anon.routes.exportItinerary({ id: r.id, format: "gpx" });
+      expect(gpx.contentType).toBe("application/gpx+xml");
+      expect(gpx.filename).toBe("Ridge.gpx");
+      expect(gpx.content).toContain('<gpx version="1.1"');
+
+      const json = await bob.routes.exportItinerary({ id: r.id, format: "json" });
+      expect(json.contentType).toBe("application/json");
+      expect(JSON.parse(json.content).version).toBe("1.0");
+    });
+
+    it("protects a private route: non-owners denied, owner allowed", async () => {
+      const r = await alice.routes.create({ path, name: "Secret", spacingM: 100 });
+
+      expect(
+        code(await anon.routes.exportItinerary({ id: r.id, format: "gpx" }).catch((e) => e)),
+      ).toBe("NOT_FOUND");
+      expect(
+        code(await bob.routes.exportItinerary({ id: r.id, format: "gpx" }).catch((e) => e)),
+      ).toBe("NOT_FOUND");
+      expect((await alice.routes.exportItinerary({ id: r.id, format: "json" })).filename).toBe(
+        "Secret.json",
+      );
+    });
+
+    it("rejects an invalid format", async () => {
+      const r = await alice.routes.create({ path, name: "X", spacingM: 100, isPublic: true });
+      // biome-ignore lint/suspicious/noExplicitAny: exercising the Zod format guard
+      const bad = { id: r.id, format: "kml" } as any;
+      const err = await anon.routes.exportItinerary(bad).catch((e) => e);
+      expect(code(err)).toBe("BAD_REQUEST");
+    });
+  });
 });

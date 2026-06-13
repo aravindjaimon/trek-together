@@ -14,3 +14,17 @@ export async function findOwnedRoute(
   const route = await repo.findById(id);
   return route && route.ownerId === userId ? route : null;
 }
+
+/**
+ * Read gate for `getById` / export (T4.5, T5.4). A route is visible when it is
+ * public (anonymous share-by-link, PRD FR-6) or the caller owns it; otherwise
+ * `null`, which callers surface as a uniform `NOT_FOUND`.
+ */
+export async function findVisibleRoute(
+  repo: RoutesRepo,
+  id: string,
+  userId: string | undefined,
+): Promise<RouteRecord | null> {
+  const route = await repo.findById(id);
+  return route && (route.isPublic || route.ownerId === userId) ? route : null;
+}
