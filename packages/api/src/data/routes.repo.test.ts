@@ -12,6 +12,7 @@ type MockDb = {
     findUnique: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
     count: ReturnType<typeof vi.fn>;
+    aggregateRaw: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
   };
@@ -71,6 +72,7 @@ beforeEach(() => {
       findUnique: vi.fn(),
       findMany: vi.fn(async () => [doc()]),
       count: vi.fn(async () => 1),
+      aggregateRaw: vi.fn(async () => []),
       update: vi.fn(async () => doc({ name: "New" })),
       delete: vi.fn(async () => doc()),
     },
@@ -127,6 +129,65 @@ describe("createPrismaRoutesRepo", () => {
       orderBy: { updatedAt: "desc" },
       skip: 0,
       take: 1,
+    });
+  });
+
+  describe("exploreNear ($geoNear)", () => {
+    it("builds a public-only $geoNear pipeline with numeric coordinates", async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: minimal Prisma mock for a unit test
+      const repo = createPrismaRoutesRepo(db as any);
+
+      await repo.exploreNear({ lng: -78.3, lat: 38.5, radiusM: 25000, page: 2, limit: 10 });
+
+      const pipeline = db.route.aggregateRaw.mock.calls[0][0].pipeline;
+      expect(pipeline[0].$geoNear).toMatchObject({
+        near: { type: "Point", coordinates: [-78.3, 38.5] },
+        distanceField: "distanceFromQueryM",
+        spherical: true,
+        maxDistance: 25000,
+        query: { isPublic: true },
+      });
+      // pagination after $geoNear
+      expect(pipeline).toContainEqual({ $skip: 10 });
+      expect(pipeline).toContainEqual({ $limit: 10 });
+    });
+
+    it("preserves geo order and parses Extended-JSON distances, ignoring findMany order", async () => {
+      // aggregateRaw returns nearest-first with Extended-JSON shapes.
+      db.route.aggregateRaw.mockResolvedValue([
+        { _id: { $oid: "b".repeat(24) }, distanceFromQueryM: { $numberDouble: "120.5" } },
+        { _id: { $oid: "a".repeat(24) }, distanceFromQueryM: { $numberInt: "800" } },
+      ]);
+      // findMany returns them in the opposite order — the repo must re-sort.
+      db.route.findMany.mockResolvedValue([
+        doc({ id: "a".repeat(24), name: "Far" }),
+        doc({ id: "b".repeat(24), name: "Near" }),
+      ]);
+      // biome-ignore lint/suspicious/noExplicitAny: minimal Prisma mock for a unit test
+      const repo = createPrismaRoutesRepo(db as any);
+
+      const { items } = await repo.exploreNear({
+        lng: 0,
+        lat: 0,
+        radiusM: 1000,
+        page: 1,
+        limit: 10,
+      });
+
+      expect(items.map((i) => i.name)).toEqual(["Near", "Far"]);
+      expect(items[0]?.distanceFromQueryM).toBe(120.5);
+      expect(items[1]?.distanceFromQueryM).toBe(800);
+    });
+
+    it("short-circuits (no findMany) when nothing is in range", async () => {
+      db.route.aggregateRaw.mockResolvedValue([]);
+      // biome-ignore lint/suspicious/noExplicitAny: minimal Prisma mock for a unit test
+      const repo = createPrismaRoutesRepo(db as any);
+
+      const { items } = await repo.exploreNear({ lng: 0, lat: 0, radiusM: 1, page: 1, limit: 10 });
+
+      expect(items).toEqual([]);
+      expect(db.route.findMany).not.toHaveBeenCalled();
     });
   });
 });

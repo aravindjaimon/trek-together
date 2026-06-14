@@ -64,6 +64,29 @@ export const listMineOutputSchema = z.object({
   limit: z.number().int().min(1),
 });
 
+const DEFAULT_RADIUS_M = 25_000;
+const MAX_RADIUS_M = 200_000;
+
+/** `routes.explore` (T6.2) — a point, a capped radius, and pagination. */
+export const exploreInputSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  radiusM: z.number().positive().max(MAX_RADIUS_M).default(DEFAULT_RADIUS_M),
+  page: z.number().int().min(1).default(1),
+  limit: z.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
+});
+
+/** A route card as returned by explore: the public route plus its distance from the query point. */
+export const exploreItemSchema = routeSchema.extend({
+  distanceFromQueryM: z.number().nonnegative(),
+});
+
+export const exploreOutputSchema = z.object({
+  items: z.array(exploreItemSchema),
+  page: z.number().int().min(1),
+  limit: z.number().int().min(1),
+});
+
 /** Owner-only metadata patch (T4.7); geometry/analysis are immutable. */
 export const updateRouteInputSchema = z.object({
   id: objectIdSchema,
