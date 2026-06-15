@@ -64,6 +64,18 @@ vi.mock("../../data/routes.repo", () => ({
     async delete(id: string) {
       repo.store.delete(id);
     },
+    // Simplified stand-in for $geoNear: public routes only, stamped with a
+    // fake distance, nearest-first by insertion. The real $geoNear query is
+    // validated against Mongo by apps/server/scripts/bench-explore.ts.
+    async exploreNear({ page, limit }: { page: number; limit: number }) {
+      const pub = [...repo.store.values()].filter((r) => r.isPublic);
+      const take = Math.min(limit, 100);
+      const skip = (page - 1) * take;
+      const items = pub
+        .slice(skip, skip + take)
+        .map((r, i) => ({ ...r, distanceFromQueryM: i * 100 }));
+      return { items };
+    },
   }),
 }));
 
@@ -218,6 +230,29 @@ describe("routes persistence + authz", () => {
       const bad = { id: r.id, format: "kml" } as any;
       const err = await anon.routes.exportItinerary(bad).catch((e) => e);
       expect(code(err)).toBe("BAD_REQUEST");
+    });
+  });
+
+  describe("explore (T6.2)", () => {
+    it("returns nearby public routes anonymously with distance + pagination meta", async () => {
+      await alice.routes.create({ path, name: "Pub1", spacingM: 100, isPublic: true });
+      await alice.routes.create({ path, name: "Priv", spacingM: 100 });
+      await bob.routes.create({ path, name: "Pub2", spacingM: 100, isPublic: true });
+
+      const res = await anon.routes.explore({ lat: 38.5, lng: -78.3, radiusM: 25000 });
+      expect(res.page).toBe(1);
+      expect(res.items).toHaveLength(2); // only public
+      expect(res.items.every((i) => i.isPublic)).toBe(true);
+      expect(res.items[0]).toHaveProperty("distanceFromQueryM");
+    });
+
+    it("rejects out-of-range coordinates and radius", async () => {
+      expect(code(await anon.routes.explore({ lat: 200, lng: 0 }).catch((e) => e))).toBe(
+        "BAD_REQUEST",
+      );
+      expect(
+        code(await anon.routes.explore({ lat: 0, lng: 0, radiusM: 9_999_999 }).catch((e) => e)),
+      ).toBe("BAD_REQUEST");
     });
   });
 });
