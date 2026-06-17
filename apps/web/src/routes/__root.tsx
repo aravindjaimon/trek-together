@@ -48,7 +48,9 @@ function RootComponent() {
       >
         <div className="grid grid-rows-[auto_1fr] h-svh">
           <Header />
-          <Outlet />
+          <main className="min-h-0 overflow-y-auto">
+            <Outlet />
+          </main>
         </div>
         <Toaster richColors />
       </ThemeProvider>
