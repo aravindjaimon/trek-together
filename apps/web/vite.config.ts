@@ -21,12 +21,33 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        name: "trek-together",
-        short_name: "trek-together",
-        description: "trek-together - PWA Application",
+        name: "Trek Together",
+        short_name: "Trek Together",
+        description:
+          "Plan trek routes, grade their difficulty, and log your hikes — offline-ready.",
         theme_color: "#0c0c0c",
+        background_color: "#0c0c0c",
+        display: "standalone",
+        start_url: "/",
+        scope: "/",
       },
       pwaAssets: { disabled: false, config: true },
+      workbox: {
+        // App shell (HTML/JS/CSS) is precached automatically (T8.2). Runtime
+        // caching below covers OSM tiles so a previously viewed map works
+        // offline, bounded to respect the OSM tile-usage policy (T8.3).
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.hostname.endsWith("tile.openstreetmap.org"),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "osm-tiles",
+              expiration: { maxEntries: 300, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
       devOptions: { enabled: true },
     }),
   ],
