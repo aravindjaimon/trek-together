@@ -73,16 +73,26 @@ export function LeafletMap({
     if (!layer) return;
     layer.clearLayers();
 
+    // Pull live theme tokens so the map matches the design system.
+    const css = getComputedStyle(document.documentElement);
+    const trail = css.getPropertyValue("--trail").trim() || "#e8621f";
+    const brand = css.getPropertyValue("--primary").trim() || "#3f8f5f";
+
     if (polyline && polyline.length > 0) {
       const latlngs = polyline.map((p) => [p.lat, p.lng] as [number, number]);
       if (latlngs.length > 1) {
-        L.polyline(latlngs, { color: "#10b981", weight: 4 }).addTo(layer);
+        // Dark casing under the blaze line keeps the route legible over any tile.
+        L.polyline(latlngs, { color: "rgba(20,25,20,0.35)", weight: 8, lineJoin: "round" }).addTo(
+          layer,
+        );
+        L.polyline(latlngs, { color: trail, weight: 4, lineJoin: "round" }).addTo(layer);
       }
       for (const p of polyline) {
         L.circleMarker([p.lat, p.lng], {
           radius: 5,
-          color: "#10b981",
-          fillColor: "#10b981",
+          color: "#fff",
+          weight: 2,
+          fillColor: trail,
           fillOpacity: 1,
         }).addTo(layer);
       }
@@ -91,9 +101,10 @@ export function LeafletMap({
     for (const m of markers ?? []) {
       const marker = L.circleMarker([m.lat, m.lng], {
         radius: 7,
-        color: "#f97316",
-        fillColor: "#f97316",
-        fillOpacity: 0.9,
+        color: "#fff",
+        weight: 2,
+        fillColor: brand,
+        fillOpacity: 1,
       }).addTo(layer);
       if (m.label) marker.bindPopup(m.label);
       if (m.onClick) marker.on("click", m.onClick);

@@ -3,6 +3,7 @@ import { Button } from "@trek-together/ui/components/button";
 
 import { signOut, useSession } from "@/lib/auth-client";
 
+import { BrandMark } from "./brand-mark";
 import { ModeToggle } from "./mode-toggle";
 
 const NAV = [
@@ -16,20 +17,27 @@ export default function Header() {
   const navigate = useNavigate();
 
   return (
-    <div>
-      <div className="flex flex-row items-center justify-between px-4 py-2">
+    <header className="sticky top-0 z-30 border-b border-border bg-sidebar/85 backdrop-blur-md supports-[backdrop-filter]:bg-sidebar/70">
+      <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-6">
-          <Link to="/" className="text-lg font-semibold">
-            Trek Together
+          <Link
+            to="/"
+            className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-foreground"
+          >
+            <BrandMark className="size-6" />
+            <span>
+              Trek<span className="text-primary">Together</span>
+            </span>
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
+          <nav className="hidden items-center gap-1 sm:flex">
             {NAV.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
-                className="text-muted-foreground hover:text-foreground [&.active]:text-foreground [&.active]:font-medium"
+                className="relative rounded-sm px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground [&.active]:text-foreground [&.active>span]:scale-x-100"
               >
                 {n.label}
+                <span className="pointer-events-none absolute inset-x-2.5 -bottom-px h-0.5 origin-left scale-x-0 rounded-full bg-primary transition-transform duration-200 ease-out" />
               </Link>
             ))}
           </nav>
@@ -37,8 +45,8 @@ export default function Header() {
         <div className="flex items-center gap-2">
           <ModeToggle />
           {session ? (
-            <div className="flex items-center gap-2">
-              <span className="hidden text-sm text-muted-foreground sm:inline">
+            <div className="flex items-center gap-2.5">
+              <span className="hidden max-w-[16ch] truncate text-sm text-muted-foreground md:inline">
                 {session.user.email}
               </span>
               <Button
@@ -57,7 +65,18 @@ export default function Header() {
           )}
         </div>
       </div>
-      <hr />
-    </div>
+      {/* Mobile nav row */}
+      <nav className="flex items-center gap-1 border-t border-border px-2 py-1 sm:hidden">
+        {NAV.map((n) => (
+          <Link
+            key={n.to}
+            to={n.to}
+            className="flex-1 rounded-sm px-2 py-1.5 text-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground"
+          >
+            {n.label}
+          </Link>
+        ))}
+      </nav>
+    </header>
   );
 }

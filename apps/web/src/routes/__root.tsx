@@ -20,11 +20,12 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   head: () => ({
     meta: [
       {
-        title: "trek-together",
+        title: "Trek Together — how hard is this hike, really?",
       },
       {
         name: "description",
-        content: "trek-together is a web application",
+        content:
+          "Draw a trail on the map and get a trustworthy difficulty grade backed by real elevation: ascent, descent, estimated time, and a Shenandoah grade.",
       },
     ],
     links: [
@@ -42,7 +43,8 @@ function RootComponent() {
       <HeadContent />
       <ThemeProvider
         attribute="class"
-        defaultTheme="dark"
+        defaultTheme="system"
+        enableSystem
         disableTransitionOnChange
         storageKey="vite-ui-theme"
       >

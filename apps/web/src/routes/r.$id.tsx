@@ -1,7 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@trek-together/ui/components/button";
-import { Download, Trash2 } from "lucide-react";
+import { Skeleton } from "@trek-together/ui/components/skeleton";
+import { Download, Link2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
@@ -39,20 +40,39 @@ function RouteViewPage() {
     onError: (e) => toast.error(e.message),
   });
 
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn’t copy the link");
+    }
+  }
+
   if (query.isLoading) {
     return (
-      <div className="container mx-auto max-w-4xl px-4 py-8 text-muted-foreground">Loading…</div>
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="mt-4 h-[360px] w-full" />
+        <Skeleton className="mt-6 h-20 w-full" />
+      </div>
     );
   }
   if (query.error || !query.data) {
     return (
-      <div className="container mx-auto max-w-4xl px-4 py-12 text-center">
-        <p className="text-muted-foreground">This route is private or doesn’t exist.</p>
-        <Button
-          variant="outline"
-          className="mt-4"
-          render={<Link to="/explore">Explore public routes</Link>}
-        />
+      <div className="mx-auto max-w-md px-4 py-20">
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <h1 className="text-lg font-semibold tracking-tight">Route unavailable</h1>
+          <p className="mt-2 text-sm text-muted-foreground text-pretty">
+            This route is private or doesn’t exist. It may have been deleted, or the link isn’t
+            shared publicly.
+          </p>
+          <Button
+            variant="outline"
+            className="mt-5"
+            render={<Link to="/explore">Explore public routes</Link>}
+          />
+        </div>
       </div>
     );
   }
@@ -62,31 +82,42 @@ function RouteViewPage() {
   const isOwner = session?.user.id === route.ownerId;
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{route.name}</h1>
-          {route.description && <p className="mt-1 text-muted-foreground">{route.description}</p>}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-balance">{route.name}</h1>
+          {route.description && (
+            <p className="mt-1.5 max-w-2xl text-muted-foreground text-pretty">
+              {route.description}
+            </p>
+          )}
         </div>
-        <DifficultyBadge band={route.difficultyBand} score={route.difficultyScore} />
+        <DifficultyBadge band={route.difficultyBand} score={route.difficultyScore} size="lg" />
       </div>
 
       <LeafletMap
-        className="mt-4 h-[360px] w-full rounded-lg border"
+        className="mt-5 h-[360px] w-full overflow-hidden rounded-lg border border-border"
         polyline={latlngs}
         fitTo={latlngs}
       />
 
-      <div className="mt-6 rounded-lg border p-4">
+      <div className="mt-5">
         <RouteSummary metrics={route} />
       </div>
 
-      <div className="mt-6">
-        <h2 className="mb-2 font-medium">Elevation profile</h2>
-        <ElevationChart profile={route.elevationProfile} />
+      <div className="mt-8">
+        <h2 className="mb-2 text-sm font-semibold tracking-tight text-muted-foreground">
+          Elevation profile
+        </h2>
+        <div className="rounded-md border border-border bg-card p-4">
+          <ElevationChart profile={route.elevationProfile} />
+        </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-2">
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <Button variant="outline" onClick={copyLink}>
+          <Link2 size={16} /> Copy link
+        </Button>
         <Button
           variant="outline"
           onClick={() => exportMut.mutate("gpx")}
@@ -103,8 +134,8 @@ function RouteViewPage() {
         </Button>
         {isOwner && (
           <Button
-            variant="outline"
-            className="ml-auto text-red-600"
+            variant="destructive"
+            className="ml-auto"
             onClick={() => del.mutate()}
             disabled={del.isPending}
           >

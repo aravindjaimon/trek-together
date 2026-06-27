@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Button } from "@trek-together/ui/components/button";
+import { Skeleton } from "@trek-together/ui/components/skeleton";
+import { MapPin } from "lucide-react";
 import { useState } from "react";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
@@ -37,7 +40,7 @@ function ExplorePage() {
   });
 
   return (
-    <div className="flex min-h-full flex-col lg:grid lg:h-full lg:grid-cols-[1fr_360px]">
+    <div className="flex min-h-full flex-col lg:grid lg:h-full lg:grid-cols-[1fr_372px]">
       <LeafletMap
         className="h-[45vh] w-full lg:h-full"
         center={center}
@@ -45,30 +48,50 @@ function ExplorePage() {
         markers={markers}
       />
 
-      <aside className="border-t p-4 lg:overflow-y-auto lg:border-l lg:border-t-0">
-        <h1 className="text-lg font-semibold">Explore</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Public routes near Shenandoah NP ({items.length} found).
-        </p>
+      <aside className="flex flex-col border-t border-border bg-sidebar p-5 lg:overflow-y-auto lg:border-t-0 lg:border-l">
+        <div className="flex items-baseline justify-between gap-3">
+          <h1 className="text-base font-semibold tracking-tight">Explore</h1>
+          {!explore.isLoading && (
+            <span className="tnum text-sm text-muted-foreground">
+              {items.length} route{items.length === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
+        <p className="mt-0.5 text-sm text-muted-foreground">Public routes near Shenandoah NP.</p>
 
-        {explore.isLoading && <p className="mt-4 text-muted-foreground">Loading…</p>}
-        {!explore.isLoading && items.length === 0 && (
-          <p className="mt-4 text-sm text-muted-foreground">
-            No public routes here yet — save one as public to seed the map.
-          </p>
+        {explore.isLoading && (
+          <ul className="mt-5 space-y-2.5">
+            {[0, 1, 2, 3].map((i) => (
+              <li key={i} className="rounded-md border border-border bg-card p-3.5">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="mt-2 h-3 w-1/2" />
+              </li>
+            ))}
+          </ul>
         )}
 
-        <ul className="mt-4 space-y-2">
+        {!explore.isLoading && items.length === 0 && (
+          <div className="mt-6 flex flex-col items-center gap-3 rounded-md border border-dashed border-border bg-card px-6 py-10 text-center">
+            <MapPin size={22} className="text-muted-foreground" />
+            <p className="text-sm text-muted-foreground text-pretty">
+              No public routes here yet. Plot one and mark it public to put the first pin on the
+              map.
+            </p>
+            <Button size="sm" variant="outline" render={<Link to="/plan">Plan a route</Link>} />
+          </div>
+        )}
+
+        <ul className="mt-5 space-y-2.5">
           {items.map((r) => (
             <li key={r.id}>
               <button
                 type="button"
                 onClick={() => navigate({ to: "/r/$id", params: { id: r.id } })}
-                className="flex w-full items-center justify-between rounded-lg border p-3 text-left hover:bg-muted/50"
+                className="group flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-accent"
               >
-                <div>
-                  <div className="font-medium">{r.name}</div>
-                  <div className="text-xs text-muted-foreground">
+                <div className="min-w-0">
+                  <div className="truncate font-medium">{r.name}</div>
+                  <div className="tnum mt-0.5 text-xs text-muted-foreground">
                     {formatDistance(r.distanceM)} · {formatDistance(r.distanceFromQueryM)} away
                   </div>
                 </div>

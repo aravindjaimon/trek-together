@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@trek-together/ui/components/button";
+import { Skeleton } from "@trek-together/ui/components/skeleton";
+import { Globe, Plus } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { useSession } from "@/lib/auth-client";
@@ -20,34 +22,43 @@ function MyRoutesPage() {
 
   if (!isPending && !session) {
     return (
-      <div className="container mx-auto max-w-3xl px-4 py-12 text-center">
-        <p className="text-muted-foreground">
-          <Link to="/login" className="text-foreground underline">
-            Sign in
-          </Link>{" "}
-          to see your saved routes.
-        </p>
+      <div className="mx-auto max-w-md px-4 py-20">
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <h1 className="text-lg font-semibold tracking-tight">Your saved routes</h1>
+          <p className="mt-2 text-sm text-muted-foreground text-pretty">
+            Sign in to keep your planned routes, revisit their analysis, and share them by link.
+          </p>
+          <Button className="mt-5" render={<Link to="/login">Sign in</Link>} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">My Routes</h1>
-        <Button size="sm" render={<Link to="/plan">Plan new</Link>} />
+        <Button render={<Link to="/plan" />}>
+          <Plus size={16} /> Plan new
+        </Button>
       </div>
 
-      {list.isLoading && <p className="mt-6 text-muted-foreground">Loading…</p>}
+      {list.isLoading && (
+        <ul className="mt-6 space-y-3">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="rounded-md border border-border bg-card p-4">
+              <Skeleton className="h-5 w-1/2" />
+              <Skeleton className="mt-2.5 h-3.5 w-1/3" />
+            </li>
+          ))}
+        </ul>
+      )}
 
       {list.data && list.data.items.length === 0 && (
-        <p className="mt-6 text-muted-foreground">
-          No routes yet.{" "}
-          <Link to="/plan" className="text-foreground underline">
-            Plan your first
-          </Link>
-          .
-        </p>
+        <div className="mt-6 flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-card px-6 py-14 text-center">
+          <p className="text-sm text-muted-foreground">No routes yet.</p>
+          <Button variant="outline" render={<Link to="/plan">Plan your first route</Link>} />
+        </div>
       )}
 
       <ul className="mt-6 space-y-3">
@@ -56,13 +67,19 @@ function MyRoutesPage() {
             <Link
               to="/r/$id"
               params={{ id: r.id }}
-              className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50"
+              className="flex items-center justify-between gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent"
             >
-              <div>
-                <div className="font-medium">{r.name}</div>
-                <div className="text-sm text-muted-foreground">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="truncate font-medium">{r.name}</span>
+                  {r.isPublic && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+                      <Globe size={11} /> Public
+                    </span>
+                  )}
+                </div>
+                <div className="tnum mt-0.5 text-sm text-muted-foreground">
                   {formatDistance(r.distanceM)}
-                  {r.isPublic && " · public"}
                 </div>
               </div>
               <DifficultyBadge band={r.difficultyBand} score={r.difficultyScore} />

@@ -27,11 +27,16 @@ export function formatDuration(s: number): string {
   return h > 0 ? `${h}h ${min}m` : `${min}m`;
 }
 
-/** Tailwind classes per Shenandoah band — greens → reds as difficulty climbs. */
-export const BAND_COLORS: Record<DifficultyBand, string> = {
-  Easiest: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  Moderate: "bg-lime-500/15 text-lime-600 dark:text-lime-400 border-lime-500/30",
-  "Moderately Strenuous": "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
-  Strenuous: "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30",
-  "Very Strenuous": "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30",
+/**
+ * Per-band metadata for the difficulty ramp. `level` (1–5) is the ordinal grade
+ * — it drives the meter so difficulty never relies on the green→red hue alone.
+ * `className` keys off the tokenized `--grade-*` scale (see globals.css), so light
+ * and dark stay legible and the whole ramp lives in one place.
+ */
+export const BAND_META: Record<DifficultyBand, { level: 1 | 2 | 3 | 4 | 5; className: string }> = {
+  Easiest: { level: 1, className: "text-grade-1 bg-grade-1/12 border-grade-1/30" },
+  Moderate: { level: 2, className: "text-grade-2 bg-grade-2/12 border-grade-2/30" },
+  "Moderately Strenuous": { level: 3, className: "text-grade-3 bg-grade-3/12 border-grade-3/30" },
+  Strenuous: { level: 4, className: "text-grade-4 bg-grade-4/12 border-grade-4/30" },
+  "Very Strenuous": { level: 5, className: "text-grade-5 bg-grade-5/15 border-grade-5/30" },
 };

@@ -25,8 +25,8 @@ export default defineConfig({
         short_name: "Trek Together",
         description:
           "Plan trek routes, grade their difficulty, and log your hikes — offline-ready.",
-        theme_color: "#0c0c0c",
-        background_color: "#0c0c0c",
+        theme_color: "#141a17",
+        background_color: "#141a17",
         display: "standalone",
         start_url: "/",
         scope: "/",
