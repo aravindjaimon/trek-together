@@ -25,6 +25,10 @@ export const errorCatalogue = {
     message: "Elevation data is temporarily unavailable.",
     data: z.object({ unresolvedCount: z.number().int().nonnegative() }),
   },
+  /** Trail snapping failed or is unconfigured — the client falls back to a straight line. */
+  ROUTING_UNAVAILABLE: {
+    message: "Trail routing is temporarily unavailable.",
+  },
   INTERNAL: {
     message: "An unexpected error occurred.",
   },

@@ -15,6 +15,11 @@ export const env = createEnv({
     OPENTOPODATA_BASE_URL: z.url().default("https://api.opentopodata.org/v1"),
     OPENTOPODATA_DATASET: z.string().min(1).default("srtm30m"),
     OPEN_ELEVATION_BASE_URL: z.url().default("https://api.open-elevation.com/api/v1"),
+    // Routing (waypoint → trail snapping) config — optional so the app boots
+    // without a token; the snap procedure fails safe to straight lines if unset.
+    ROUTING_PROVIDER: z.enum(["mapbox"]).default("mapbox"),
+    MAPBOX_ACCESS_TOKEN: z.string().optional(),
+    MAPBOX_DIRECTIONS_URL: z.url().default("https://api.mapbox.com/directions/v5/mapbox/walking"),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

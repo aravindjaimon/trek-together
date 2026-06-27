@@ -18,9 +18,10 @@ const DIFFICULTY_BANDS = [
   "Very Strenuous",
 ] as const satisfies readonly DifficultyBand[];
 
-// ponytail: caps chosen to bound provider quota + latency (OpenTopoData is
-// ~1 req/s, 1000 pts/day). Widen if real routes need denser sampling.
-const MAX_VERTICES = 500;
+// ponytail: high enough to accept full-resolution snapped geometry (routes.snap
+// returns a vertex per path node). Provider quota is guarded downstream by the
+// length-based `guardSize`/`MAX_PROFILE_POINTS` in analyze.ts, not this cap.
+const MAX_VERTICES = 3000;
 const MIN_SPACING_M = 10;
 const MAX_SPACING_M = 1000;
 const DEFAULT_SPACING_M = 60;
