@@ -73,4 +73,30 @@ describe("routes.analyze (over HTTP)", () => {
     expect(err).toBeInstanceOf(ORPCError);
     expect((err as ORPCError<string, unknown>).code).toBe("BAD_REQUEST");
   });
+
+  it("accepts full-resolution snapped geometry (3000 vertices)", async () => {
+    // routes.snap returns a vertex per path node, so the schema cap is 3000.
+    // ~1.1 m apart → ~3.3 km total, well under the guardSize points budget.
+    const dense = Array.from({ length: 3000 }, (_, i) => ({ lat: i * 1e-5, lng: 0 }));
+
+    const result = await client.routes.analyze({ path: dense, spacingM: 100 });
+
+    expect(result.distanceM).toBeGreaterThan(3000);
+    expect(result.difficultyBand).toBe("Easiest");
+  });
+
+  it("still rejects routes that would densify past the sample budget (guardSize)", async () => {
+    // Two vertices ~1100 km apart densify to far more than MAX_PROFILE_POINTS,
+    // so the vertex-count cap alone can't be gamed by long sparse routes.
+    const err = await client.routes
+      .analyze({
+        path: [
+          { lat: 0, lng: 0 },
+          { lat: 10, lng: 0 },
+        ],
+      })
+      .catch((e) => e);
+
+    expect((err as ORPCError<string, unknown>).code).toBe("VALIDATION");
+  });
 });
