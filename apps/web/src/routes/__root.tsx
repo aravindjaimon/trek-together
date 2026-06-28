@@ -1,6 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { createRootRouteWithContext, HeadContent, Outlet } from "@tanstack/react-router";
+import {
+  createRootRouteWithContext,
+  HeadContent,
+  Outlet,
+  useRouterState,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Toaster } from "@trek-together/ui/components/sonner";
 
@@ -38,6 +43,9 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 });
 
 function RootComponent() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAuthRoute = pathname === "/login" || pathname === "/register";
+
   return (
     <>
       <HeadContent />
@@ -48,12 +56,19 @@ function RootComponent() {
         disableTransitionOnChange
         storageKey="vite-ui-theme"
       >
-        <div className="grid grid-rows-[auto_1fr] h-svh">
-          <Header />
-          <main className="min-h-0 overflow-y-auto">
+        {isAuthRoute ? (
+          // Auth screens are their own chrome-free surface — no app header.
+          <main className="h-svh overflow-y-auto">
             <Outlet />
           </main>
-        </div>
+        ) : (
+          <div className="grid grid-rows-[auto_1fr] h-svh">
+            <Header />
+            <main className="min-h-0 overflow-y-auto">
+              <Outlet />
+            </main>
+          </div>
+        )}
         <Toaster richColors />
       </ThemeProvider>
       <TanStackRouterDevtools position="bottom-left" />

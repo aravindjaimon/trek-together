@@ -15,6 +15,8 @@ const NAV = [
 export default function Header() {
   const { data: session } = useSession();
   const navigate = useNavigate();
+  // My Routes needs an account; guests see Plan + Explore only.
+  const navItems = session ? NAV : NAV.filter((n) => n.to !== "/routes");
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-sidebar/85 backdrop-blur-md supports-[backdrop-filter]:bg-sidebar/70">
@@ -30,7 +32,7 @@ export default function Header() {
             </span>
           </Link>
           <nav className="hidden items-center gap-1 sm:flex">
-            {NAV.map((n) => (
+            {navItems.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
@@ -67,7 +69,7 @@ export default function Header() {
       </div>
       {/* Mobile nav row */}
       <nav className="flex items-center gap-1 border-t border-border px-2 py-1 sm:hidden">
-        {NAV.map((n) => (
+        {navItems.map((n) => (
           <Link
             key={n.to}
             to={n.to}
