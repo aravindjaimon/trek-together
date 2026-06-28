@@ -2,12 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@trek-together/ui/components/button";
 import { Skeleton } from "@trek-together/ui/components/skeleton";
-import { MapPin } from "lucide-react";
+import { LocateFixed, MapPin } from "lucide-react";
 import { useState } from "react";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { type LatLng, LeafletMap, type MapMarker } from "@/components/leaflet-map";
 import { formatDistance, pathToLatLngs } from "@/lib/format";
+import { useGeolocate } from "@/lib/use-geolocate";
 import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/explore")({
@@ -18,7 +19,9 @@ const SHENANDOAH: LatLng = { lat: 38.53, lng: -78.35 };
 
 function ExplorePage() {
   const navigate = useNavigate();
-  const [center] = useState<LatLng>(SHENANDOAH);
+  const [center, setCenter] = useState<LatLng>(SHENANDOAH);
+  const [located, setLocated] = useState<LatLng>();
+  const { locate, isLocating } = useGeolocate();
 
   const explore = useQuery(
     orpc.routes.explore.queryOptions({
@@ -46,18 +49,37 @@ function ExplorePage() {
         center={center}
         zoom={10}
         markers={markers}
+        fitTo={located ? [located] : undefined}
       />
 
       <aside className="flex flex-col border-t border-border bg-sidebar p-5 lg:overflow-y-auto lg:border-t-0 lg:border-l">
         <div className="flex items-baseline justify-between gap-3">
           <h1 className="text-base font-semibold tracking-tight">Explore</h1>
-          {!explore.isLoading && (
-            <span className="tnum text-sm text-muted-foreground">
-              {items.length} route{items.length === 1 ? "" : "s"}
-            </span>
-          )}
+          <div className="flex items-center gap-2.5">
+            {!explore.isLoading && (
+              <span className="tnum text-sm text-muted-foreground">
+                {items.length} route{items.length === 1 ? "" : "s"}
+              </span>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isLocating}
+              onClick={() =>
+                locate((p) => {
+                  setCenter(p);
+                  setLocated(p);
+                })
+              }
+            >
+              <LocateFixed size={15} />
+              Near me
+            </Button>
+          </div>
         </div>
-        <p className="mt-0.5 text-sm text-muted-foreground">Public routes near Shenandoah NP.</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {located ? "Public routes near you." : "Public routes near Shenandoah NP."}
+        </p>
 
         {explore.isLoading && (
           <ul className="mt-5 space-y-2.5">

@@ -18,8 +18,10 @@ interface LeafletMapProps {
   zoom?: number;
   /** Click handler for planner mode (adds a vertex). */
   onMapClick?: (p: LatLng) => void;
-  /** Ordered polyline to draw (the route). */
+  /** Ordered polyline to draw (the route geometry). */
   polyline?: LatLng[];
+  /** Dots to mark (e.g. the user's clicked waypoints, or a route's endpoints). */
+  waypoints?: LatLng[];
   /** Standalone markers (explore results). */
   markers?: MapMarker[];
   /** When set, the map fits its view to these points on change. */
@@ -41,6 +43,7 @@ export function LeafletMap({
   zoom = 12,
   onMapClick,
   polyline,
+  waypoints,
   markers,
   fitTo,
 }: LeafletMapProps) {
@@ -87,15 +90,17 @@ export function LeafletMap({
         );
         L.polyline(latlngs, { color: trail, weight: 4, lineJoin: "round" }).addTo(layer);
       }
-      for (const p of polyline) {
-        L.circleMarker([p.lat, p.lng], {
-          radius: 5,
-          color: "#fff",
-          weight: 2,
-          fillColor: trail,
-          fillOpacity: 1,
-        }).addTo(layer);
-      }
+    }
+
+    // Dots for waypoints only (the clicks) — not per snapped polyline vertex.
+    for (const p of waypoints ?? []) {
+      L.circleMarker([p.lat, p.lng], {
+        radius: 5,
+        color: "#fff",
+        weight: 2,
+        fillColor: trail,
+        fillOpacity: 1,
+      }).addTo(layer);
     }
 
     for (const m of markers ?? []) {
@@ -109,7 +114,7 @@ export function LeafletMap({
       if (m.label) marker.bindPopup(m.label);
       if (m.onClick) marker.on("click", m.onClick);
     }
-  }, [polyline, markers]);
+  }, [polyline, waypoints, markers]);
 
   // Fit bounds when requested.
   useEffect(() => {

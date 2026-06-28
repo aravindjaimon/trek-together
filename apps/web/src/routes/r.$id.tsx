@@ -98,6 +98,7 @@ function RouteViewPage() {
       <LeafletMap
         className="mt-5 h-[360px] w-full overflow-hidden rounded-lg border border-border"
         polyline={latlngs}
+        waypoints={[...latlngs.slice(0, 1), ...latlngs.slice(-1)]}
         fitTo={latlngs}
       />
 

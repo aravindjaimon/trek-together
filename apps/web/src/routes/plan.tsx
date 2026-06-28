@@ -14,6 +14,7 @@ import { type LatLng, LeafletMap } from "@/components/leaflet-map";
 import { RouteSummary } from "@/components/route-summary";
 import { useSession } from "@/lib/auth-client";
 import type { Analysis } from "@/lib/format";
+import { useGeolocate } from "@/lib/use-geolocate";
 import { client, queryClient } from "@/utils/orpc";
 
 export const Route = createFileRoute("/plan")({
@@ -23,11 +24,20 @@ export const Route = createFileRoute("/plan")({
 function PlanPage() {
   const navigate = useNavigate();
   const { data: session } = useSession();
+  // `waypoints` are the user's clicks; `path` is the trail-snapped geometry we
+  // draw, analyse, and save. They diverge once snapping succeeds.
+  const [waypoints, setWaypoints] = useState<LatLng[]>([]);
   const [path, setPath] = useState<LatLng[]>([]);
+  const [fitTo, setFitTo] = useState<LatLng[]>();
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const { locate, isLocating } = useGeolocate();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(false);
+
+  const snap = useMutation({
+    mutationFn: (wp: LatLng[]) => client.routes.snap({ waypoints: wp }),
+  });
 
   const analyze = useMutation({
     mutationFn: (p: LatLng[]) => client.routes.analyze({ path: p }),
@@ -46,16 +56,36 @@ function PlanPage() {
     onError: (e) => toast.error(e.message),
   });
 
-  function addPoint(p: LatLng) {
-    setPath((prev) => [...prev, p]);
+  // Set the waypoints and recompute the snapped path. <2 points can't be routed,
+  // so the path mirrors the clicks; on a snapping failure we fall back to a
+  // straight line so planning always works.
+  function commit(next: LatLng[]) {
+    setWaypoints(next);
     setAnalysis(null);
+    if (next.length < 2) {
+      setPath(next);
+      return;
+    }
+    snap.mutate(next, {
+      onSuccess: (r) => setPath(r.path),
+      onError: () => {
+        setPath(next);
+        toast.error("Couldn't follow a trail — showing a straight line.");
+      },
+    });
   }
 
   return (
     <div className="flex min-h-full flex-col lg:grid lg:h-full lg:grid-cols-[1fr_408px]">
       <div className="relative h-[45vh] w-full lg:h-full">
-        <LeafletMap className="h-full w-full" onMapClick={addPoint} polyline={path} />
-        {path.length === 0 && (
+        <LeafletMap
+          className="h-full w-full"
+          onMapClick={(p) => commit([...waypoints, p])}
+          polyline={path}
+          waypoints={waypoints}
+          fitTo={fitTo}
+        />
+        {waypoints.length === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-4 z-[1000] flex justify-center px-4">
             <div className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-3.5 py-1.5 text-sm font-medium shadow-sm backdrop-blur">
               <MousePointerClick size={15} className="text-trail" />
@@ -70,15 +100,31 @@ function PlanPage() {
           <div>
             <h1 className="text-base font-semibold tracking-tight">Plan a route</h1>
             <p className="tnum mt-0.5 text-sm text-muted-foreground">
-              {path.length} waypoint{path.length === 1 ? "" : "s"} placed
+              {snap.isPending
+                ? "Following trails…"
+                : `${waypoints.length} waypoint${waypoints.length === 1 ? "" : "s"} placed`}
             </p>
           </div>
           <div className="flex gap-1.5">
             <Button
               size="icon"
               variant="outline"
-              disabled={path.length === 0}
-              onClick={() => setPath((p) => p.slice(0, -1))}
+              disabled={isLocating}
+              onClick={() =>
+                locate((p) => {
+                  commit([...waypoints, p]);
+                  setFitTo([p]);
+                })
+              }
+              aria-label="Use my location"
+            >
+              <LocateFixed size={16} />
+            </Button>
+            <Button
+              size="icon"
+              variant="outline"
+              disabled={waypoints.length === 0}
+              onClick={() => commit(waypoints.slice(0, -1))}
               aria-label="Undo last point"
             >
               <Undo2 size={16} />
@@ -86,11 +132,8 @@ function PlanPage() {
             <Button
               size="icon"
               variant="outline"
-              disabled={path.length === 0}
-              onClick={() => {
-                setPath([]);
-                setAnalysis(null);
-              }}
+              disabled={waypoints.length === 0}
+              onClick={() => commit([])}
               aria-label="Clear route"
             >
               <X size={16} />
@@ -100,12 +143,12 @@ function PlanPage() {
 
         <Button
           className="mt-4 h-11 w-full text-sm"
-          disabled={path.length < 2 || analyze.isPending}
+          disabled={path.length < 2 || analyze.isPending || snap.isPending}
           onClick={() => analyze.mutate(path)}
         >
           {analyze.isPending ? "Analyzing…" : "Analyze route"}
         </Button>
-        {path.length < 2 && (
+        {waypoints.length < 2 && (
           <p className="mt-2 text-center text-xs text-muted-foreground">
             Place at least two waypoints to analyze.
           </p>
