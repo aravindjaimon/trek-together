@@ -5,7 +5,7 @@ import { Checkbox } from "@trek-together/ui/components/checkbox";
 import { Input } from "@trek-together/ui/components/input";
 import { Label } from "@trek-together/ui/components/label";
 import { LocateFixed, MousePointerClick, Undo2, X } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
@@ -20,6 +20,10 @@ import { client, queryClient } from "@/utils/orpc";
 export const Route = createFileRoute("/plan")({
   component: PlanPage,
 });
+
+// ponytail: mirrors the server's snap cap (Mapbox Directions' 25-coordinate
+// per-request limit) — kept in lock-step by snap.test.ts, not an import.
+const MAX_WAYPOINTS = 25;
 
 function PlanPage() {
   const navigate = useNavigate();
@@ -56,23 +60,40 @@ function PlanPage() {
     onError: (e) => toast.error(e.message),
   });
 
+  // Monotonic sequence for snap requests: each commit invalidates every earlier
+  // in-flight response, so a slow older snap can never overdraw a newer path
+  // (or a Clear/Undo that happened while it was in flight).
+  const snapSeq = useRef(0);
+
   // Set the waypoints and recompute the snapped path. <2 points can't be routed,
   // so the path mirrors the clicks; on a snapping failure we fall back to a
   // straight line so planning always works.
   function commit(next: LatLng[]) {
     setWaypoints(next);
     setAnalysis(null);
+    const seq = ++snapSeq.current;
     if (next.length < 2) {
       setPath(next);
       return;
     }
     snap.mutate(next, {
-      onSuccess: (r) => setPath(r.path),
+      onSuccess: (r) => {
+        if (seq === snapSeq.current) setPath(r.path);
+      },
       onError: () => {
+        if (seq !== snapSeq.current) return;
         setPath(next);
         toast.error("Couldn't follow a trail — showing a straight line.");
       },
     });
+  }
+
+  function addWaypoint(p: LatLng) {
+    if (waypoints.length >= MAX_WAYPOINTS) {
+      toast.error(`Waypoint limit reached (${MAX_WAYPOINTS}). Undo a point to add more.`);
+      return;
+    }
+    commit([...waypoints, p]);
   }
 
   return (
@@ -80,7 +101,7 @@ function PlanPage() {
       <div className="relative h-[45vh] w-full lg:h-full">
         <LeafletMap
           className="h-full w-full"
-          onMapClick={(p) => commit([...waypoints, p])}
+          onMapClick={addWaypoint}
           polyline={path}
           waypoints={waypoints}
           fitTo={fitTo}
@@ -112,7 +133,7 @@ function PlanPage() {
               disabled={isLocating}
               onClick={() =>
                 locate((p) => {
-                  commit([...waypoints, p]);
+                  addWaypoint(p);
                   setFitTo([p]);
                 })
               }
