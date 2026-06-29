@@ -102,9 +102,11 @@ export function createOpenElevationProvider(config: OpenElevationConfig = {}): E
     }
 
     if (!response.ok) {
+      const retryAfter = Number(response.headers.get("retry-after"));
       throw new ElevationProviderError(`Elevation request returned HTTP ${response.status}`, {
         provider: PROVIDER,
         status: response.status,
+        retryAfterS: Number.isFinite(retryAfter) && retryAfter >= 0 ? retryAfter : undefined,
       });
     }
 
@@ -153,5 +155,5 @@ export function createOpenElevationProvider(config: OpenElevationConfig = {}): E
     });
   }
 
-  return { lookup };
+  return { name: PROVIDER, lookup };
 }

@@ -7,10 +7,14 @@ const BASE_URL = "https://example.test/api/v1";
 const everest: LatLng = { lat: 27.9881, lng: 86.925 };
 const sea: LatLng = { lat: 0, lng: 0 };
 
-function jsonResponse(body: unknown, init?: { ok?: boolean; status?: number }): Response {
+function jsonResponse(
+  body: unknown,
+  init?: { ok?: boolean; status?: number; headers?: Record<string, string> },
+): Response {
   return {
     ok: init?.ok ?? true,
     status: init?.status ?? 200,
+    headers: new Headers(init?.headers),
     json: async () => body,
   } as unknown as Response;
 }

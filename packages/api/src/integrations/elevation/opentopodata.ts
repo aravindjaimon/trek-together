@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { consumeDailyBudget } from "./quota";
 import { type ElevationPoint, ElevationProviderError, type LatLng } from "./types";
 
 const PROVIDER = "opentopodata";
@@ -23,6 +24,8 @@ export interface OpenTopoDataConfig {
   /** Injectable for tests; defaults to the global `fetch`. */
   fetch?: typeof fetch;
   timeoutMs?: number;
+  /** Max outbound requests per UTC day (public host ≈ 1000). */
+  dailyLimit?: number;
 }
 
 interface ResolvedConfig {
@@ -30,6 +33,7 @@ interface ResolvedConfig {
   dataset: string;
   fetch: typeof fetch;
   timeoutMs: number;
+  dailyLimit: number;
 }
 
 // Cached so env is imported (and validated) at most once, and only when a
@@ -57,6 +61,7 @@ export function createOpenTopoDataProvider(config: OpenTopoDataConfig = {}) {
       dataset: config.dataset ?? (await loadServerEnv()).env.OPENTOPODATA_DATASET,
       fetch: config.fetch ?? globalThis.fetch,
       timeoutMs: config.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      dailyLimit: config.dailyLimit ?? (await loadServerEnv()).env.OPENTOPODATA_DAILY_LIMIT,
     };
     return resolved;
   }
@@ -64,7 +69,11 @@ export function createOpenTopoDataProvider(config: OpenTopoDataConfig = {}) {
   async function lookup(points: LatLng[]): Promise<ElevationPoint[]> {
     if (points.length === 0) return [];
 
-    const { baseUrl, dataset, fetch: doFetch, timeoutMs } = await resolveConfig();
+    const { baseUrl, dataset, fetch: doFetch, timeoutMs, dailyLimit } = await resolveConfig();
+    // Local daily circuit breaker (T10.6): fail typed at the public host's
+    // ceiling instead of hammering an exhausted quota. Flows through the normal
+    // fallback path like any provider error.
+    consumeDailyBudget(PROVIDER, dailyLimit);
     const locations = points.map((p) => `${p.lat},${p.lng}`).join("|");
 
     let response: Response;
@@ -86,9 +95,11 @@ export function createOpenTopoDataProvider(config: OpenTopoDataConfig = {}) {
     }
 
     if (!response.ok) {
+      const retryAfter = Number(response.headers.get("retry-after"));
       throw new ElevationProviderError(`Elevation request returned HTTP ${response.status}`, {
         provider: PROVIDER,
         status: response.status,
+        retryAfterS: Number.isFinite(retryAfter) && retryAfter >= 0 ? retryAfter : undefined,
       });
     }
 
@@ -144,5 +155,5 @@ export function createOpenTopoDataProvider(config: OpenTopoDataConfig = {}) {
     });
   }
 
-  return { lookup };
+  return { name: PROVIDER, lookup };
 }

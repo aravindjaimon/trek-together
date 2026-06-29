@@ -18,6 +18,7 @@ describe("getProvider", () => {
         baseUrl: "https://otd.test/v1",
         dataset: "srtm30m",
         fetch: fetchMock as unknown as typeof fetch,
+        dailyLimit: 1000, // injected so the test never loads env
       },
     });
 

@@ -37,10 +37,13 @@ function countingProvider() {
         dataset: "srtm30m",
       })),
   );
-  return { lookup };
+  return { name: "fake-primary", lookup };
 }
 
-function makeService(repo: ElevationCacheRepo, provider: { lookup: ReturnType<typeof vi.fn> }) {
+function makeService(
+  repo: ElevationCacheRepo,
+  provider: { name: string; lookup: ReturnType<typeof vi.fn> },
+) {
   return createElevationService({
     repo,
     provider,
@@ -139,11 +142,12 @@ describe("createElevationService.getElevations", () => {
   });
 });
 
-/** Provider that always fails with a typed provider error. */
+/** Provider that always fails with a typed, non-retryable provider error. */
 function failingProvider(provider = "opentopodata") {
   return {
+    name: provider,
     lookup: vi.fn(async (): Promise<ElevationPoint[]> => {
-      throw new ElevationProviderError("quota exceeded", { provider, status: 429 });
+      throw new ElevationProviderError("quota exceeded", { provider, status: 500 });
     }),
   };
 }

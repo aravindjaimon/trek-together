@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createOpenTopoDataProvider } from "./opentopodata";
+import { resetDailyBudgets } from "./quota";
 import { ElevationProviderError, type LatLng } from "./types";
 
 const BASE_URL = "https://example.test/v1";
@@ -8,21 +9,30 @@ const DATASET = "srtm30m";
 const everest: LatLng = { lat: 27.9881, lng: 86.925 };
 const sea: LatLng = { lat: 0, lng: 0 };
 
-function jsonResponse(body: unknown, init?: { ok?: boolean; status?: number }): Response {
+function jsonResponse(
+  body: unknown,
+  init?: { ok?: boolean; status?: number; headers?: Record<string, string> },
+): Response {
   return {
     ok: init?.ok ?? true,
     status: init?.status ?? 200,
+    headers: new Headers(init?.headers),
     json: async () => body,
   } as unknown as Response;
 }
 
-function makeProvider(fetchImpl: typeof fetch) {
+function makeProvider(fetchImpl: typeof fetch, dailyLimit = 1000) {
   return createOpenTopoDataProvider({
     baseUrl: BASE_URL,
     dataset: DATASET,
     fetch: fetchImpl,
+    // Injected so unit tests never load env; the budget itself is per-process.
+    dailyLimit,
   });
 }
+
+// The daily budget is process-global state keyed by provider name.
+beforeEach(() => resetDailyBudgets());
 
 describe("createOpenTopoDataProvider.lookup", () => {
   it("maps results to elevation points in input order", async () => {
@@ -135,5 +145,37 @@ describe("createOpenTopoDataProvider.lookup", () => {
     const provider = makeProvider(fetchMock as unknown as typeof fetch);
 
     await expect(provider.lookup([sea])).rejects.toBeInstanceOf(ElevationProviderError);
+  });
+
+  it("captures Retry-After (seconds) on an upstream 429", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ status: "429" }, { ok: false, status: 429, headers: { "retry-after": "7" } }),
+    );
+    const provider = makeProvider(fetchMock as unknown as typeof fetch);
+
+    const err = (await provider.lookup([sea]).catch((e) => e)) as ElevationProviderError;
+
+    expect(err).toBeInstanceOf(ElevationProviderError);
+    expect(err.status).toBe(429);
+    expect(err.retryAfterS).toBe(7);
+  });
+
+  it("trips the daily budget: the N+1th request fails typed without touching the network", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        status: "OK",
+        results: [{ elevation: 1, location: { lat: 0, lng: 0 }, dataset: "srtm30m" }],
+      }),
+    );
+    const provider = makeProvider(fetchMock as unknown as typeof fetch, 2);
+
+    await provider.lookup([sea]);
+    await provider.lookup([sea]);
+    const err = (await provider.lookup([sea]).catch((e) => e)) as ElevationProviderError;
+
+    expect(err).toBeInstanceOf(ElevationProviderError);
+    expect(err.provider).toBe("opentopodata");
+    expect(err.message).toContain("budget");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

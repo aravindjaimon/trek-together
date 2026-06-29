@@ -14,6 +14,8 @@ export const env = createEnv({
     ELEVATION_PROVIDER: z.enum(["opentopodata", "open-elevation"]).default("opentopodata"),
     OPENTOPODATA_BASE_URL: z.url().default("https://api.opentopodata.org/v1"),
     OPENTOPODATA_DATASET: z.string().min(1).default("srtm30m"),
+    // Local daily circuit breaker matching the public host's ~1000 calls/day.
+    OPENTOPODATA_DAILY_LIMIT: z.coerce.number().int().positive().default(1000),
     OPEN_ELEVATION_BASE_URL: z.url().default("https://api.open-elevation.com/api/v1"),
     // Routing (waypoint → trail snapping) config — optional so the app boots
     // without a token; the snap procedure fails safe to straight lines if unset.

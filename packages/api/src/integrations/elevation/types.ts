@@ -28,6 +28,12 @@ export interface ElevationPoint {
  * (T1.3).
  */
 export interface ElevationProvider {
+  /**
+   * Stable identity, e.g. `"opentopodata"` — keys the process-global rate
+   * limiter so every concurrent request to one host shares one 1 req/s chain
+   * (T10.6).
+   */
+  readonly name: string;
   lookup(points: LatLng[]): Promise<ElevationPoint[]>;
 }
 
@@ -36,6 +42,8 @@ export interface ElevationProviderErrorOptions {
   provider: string;
   /** Upstream HTTP status, when the failure came from a response. */
   status?: number;
+  /** Upstream `Retry-After` (seconds), when the response carried one. */
+  retryAfterS?: number;
   cause?: unknown;
 }
 
@@ -47,12 +55,14 @@ export interface ElevationProviderErrorOptions {
 export class ElevationProviderError extends Error {
   readonly provider: string;
   readonly status?: number;
+  readonly retryAfterS?: number;
 
   constructor(message: string, options: ElevationProviderErrorOptions) {
     super(message, { cause: options.cause });
     this.name = "ElevationProviderError";
     this.provider = options.provider;
     this.status = options.status;
+    this.retryAfterS = options.retryAfterS;
   }
 }
 
