@@ -5,7 +5,7 @@ import { Checkbox } from "@trek-together/ui/components/checkbox";
 import { Input } from "@trek-together/ui/components/input";
 import { Label } from "@trek-together/ui/components/label";
 import { LocateFixed, MousePointerClick, Undo2, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
@@ -25,13 +25,30 @@ export const Route = createFileRoute("/plan")({
 // per-request limit) — kept in lock-step by snap.test.ts, not an import.
 const MAX_WAYPOINTS = 25;
 
+// Waypoints survive the sign-in round-trip (the page unmounts) via
+// sessionStorage — cleared on save and on explicit Clear.
+const DRAFT_KEY = "plan:draft";
+
+function readDraft(): LatLng[] {
+  try {
+    const parsed: unknown = JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (p): p is LatLng => typeof p?.lat === "number" && typeof p?.lng === "number",
+    );
+  } catch {
+    return [];
+  }
+}
+
 function PlanPage() {
   const navigate = useNavigate();
   const { data: session } = useSession();
   // `waypoints` are the user's clicks; `path` is the trail-snapped geometry we
   // draw, analyse, and save. They diverge once snapping succeeds.
-  const [waypoints, setWaypoints] = useState<LatLng[]>([]);
-  const [path, setPath] = useState<LatLng[]>([]);
+  const [waypoints, setWaypoints] = useState<LatLng[]>(readDraft);
+  // Restored drafts start as a straight line; the mount effect below re-snaps.
+  const [path, setPath] = useState<LatLng[]>(waypoints);
   const [fitTo, setFitTo] = useState<LatLng[]>();
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const { locate, isLocating } = useGeolocate();
@@ -54,6 +71,7 @@ function PlanPage() {
       client.routes.create({ path, name, description: description || null, isPublic }),
     onSuccess: (route) => {
       toast.success("Route saved");
+      sessionStorage.removeItem(DRAFT_KEY);
       queryClient.invalidateQueries({ queryKey: [["routes", "listMine"]] });
       navigate({ to: "/r/$id", params: { id: route.id } });
     },
@@ -71,6 +89,8 @@ function PlanPage() {
   function commit(next: LatLng[]) {
     setWaypoints(next);
     setAnalysis(null);
+    if (next.length === 0) sessionStorage.removeItem(DRAFT_KEY);
+    else sessionStorage.setItem(DRAFT_KEY, JSON.stringify(next));
     const seq = ++snapSeq.current;
     if (next.length < 2) {
       setPath(next);
@@ -95,6 +115,13 @@ function PlanPage() {
     }
     commit([...waypoints, p]);
   }
+
+  // Re-snap a restored draft once on mount — state initializers can't call
+  // mutations, and re-running on waypoint changes would double-snap every edit.
+  useEffect(() => {
+    if (waypoints.length >= 2) commit(waypoints);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex min-h-full flex-col lg:grid lg:h-full lg:grid-cols-[1fr_408px]">
