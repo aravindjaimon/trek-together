@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@trek-together/ui/components/button";
 import { Skeleton } from "@trek-together/ui/components/skeleton";
 import { LocateFixed, MapPin } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { type LatLng, LeafletMap, type MapMarker } from "@/components/leaflet-map";
@@ -42,6 +42,17 @@ function ExplorePage() {
     ];
   });
 
+  // After "Near me", fit to the located point plus the result pins around it —
+  // not a lone point at max zoom — re-fitting once the recentred results land.
+  const fitTo = useMemo<LatLng[] | undefined>(() => {
+    if (!located) return undefined;
+    const starts = (explore.data?.items ?? []).flatMap((r) => {
+      const start = pathToLatLngs(r.path)[0];
+      return start ? [start] : [];
+    });
+    return [located, ...starts];
+  }, [located, explore.data]);
+
   return (
     <div className="flex min-h-full flex-col lg:grid lg:h-full lg:grid-cols-[1fr_372px]">
       <LeafletMap
@@ -49,7 +60,7 @@ function ExplorePage() {
         center={center}
         zoom={10}
         markers={markers}
-        fitTo={located ? [located] : undefined}
+        fitTo={fitTo}
       />
 
       <aside className="flex flex-col border-t border-border bg-sidebar p-5 lg:overflow-y-auto lg:border-t-0 lg:border-l">

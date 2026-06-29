@@ -17,7 +17,12 @@ const STEPS = [
 ] as const;
 
 function HomeComponent() {
-  const healthCheck = useQuery(orpc.healthCheck.queryOptions());
+  const healthCheck = useQuery({
+    ...orpc.healthCheck.queryOptions(),
+    // The footer dot is the single signal — no global toast, no retry delay.
+    retry: false,
+    meta: { silentError: true },
+  });
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
