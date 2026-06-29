@@ -3,6 +3,7 @@ import { protectedProcedure } from "../../index";
 import { createDefaultElevationService } from "../../integrations/elevation/default-service";
 import { ElevationUnavailableError } from "../../integrations/elevation/types";
 import { analyzeRoute, RouteTooLargeError } from "../../services/analyze";
+import { ElevationCoverageError } from "../../services/elevation-profile";
 import { toLineString } from "../../services/geojson";
 import { createRouteInputSchema, routeSchema } from "./route.schema";
 
@@ -27,6 +28,11 @@ export const create = protectedProcedure
     } catch (err) {
       if (err instanceof RouteTooLargeError) {
         throw errors.VALIDATION({ message: err.message });
+      }
+      if (err instanceof ElevationCoverageError) {
+        throw errors.VALIDATION({
+          message: "Part of this route is outside elevation data coverage.",
+        });
       }
       if (err instanceof ElevationUnavailableError) {
         throw errors.ELEVATION_UNAVAILABLE({ data: { unresolvedCount: err.unresolvedCount } });

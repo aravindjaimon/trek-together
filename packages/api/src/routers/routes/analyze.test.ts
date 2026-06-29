@@ -4,23 +4,35 @@ import type { AddressInfo } from "node:net";
 import { createORPCClient, ORPCError } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { RPCHandler } from "@orpc/server/node";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { Context } from "../../context";
 import type { AppRouterClient } from "../index";
 import { appRouter } from "../index";
 
-// Keep the test offline: the elevation client is mocked to return flat, canned
-// elevations, so no Mongo and no provider network is touched. A flat profile
-// gives a deterministic analysis (no ascent → "Easiest").
+// Keep the test offline: the elevation client is mocked, so no Mongo and no
+// provider network is touched. Flat 100 m by default (no ascent → "Easiest");
+// individual tests override `elevation.of` (reset in afterEach).
+const elevation = vi.hoisted(() => ({
+  of: (_p: { lat: number; lng: number }): number | null => 100,
+}));
 vi.mock("../../integrations/elevation/default-service", () => ({
   createDefaultElevationService: () => ({
     getElevations: async (points: Array<{ lat: number; lng: number }>) => ({
-      points: points.map((p) => ({ lat: p.lat, lng: p.lng, elevationM: 100, dataset: "test" })),
+      points: points.map((p) => ({
+        lat: p.lat,
+        lng: p.lng,
+        elevationM: elevation.of(p),
+        dataset: "test",
+      })),
       stats: { hits: 0, misses: points.length },
     }),
   }),
 }));
+
+afterEach(() => {
+  elevation.of = () => 100;
+});
 
 let server: Server;
 let client: AppRouterClient;
@@ -83,6 +95,14 @@ describe("routes.analyze (over HTTP)", () => {
 
     expect(result.distanceM).toBeGreaterThan(3000);
     expect(result.difficultyBand).toBe("Easiest");
+  });
+
+  it("maps a route outside data coverage to typed VALIDATION — never a 500 (T10.7)", async () => {
+    elevation.of = () => null; // every sample outside the dataset (route over water)
+
+    const err = await client.routes.analyze({ path: validPath, spacingM: 100 }).catch((e) => e);
+
+    expect((err as ORPCError<string, unknown>).code).toBe("VALIDATION");
   });
 
   it("still rejects routes that would densify past the sample budget (guardSize)", async () => {

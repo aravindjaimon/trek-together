@@ -18,6 +18,26 @@ export interface ElevationClient {
   getElevations(points: LatLng[]): Promise<GetElevationsResult>;
 }
 
+/** Max fraction of samples allowed to fall outside dataset coverage (T10.7). */
+const MAX_COVERAGE_GAP_FRACTION = 0.2;
+
+/**
+ * Raised when too much of a route has no elevation data (drawn across water or
+ * outside the dataset's ~60°N–56°S coverage). A user-input problem — mapped to
+ * VALIDATION at the procedure boundary, unlike transient provider failures.
+ */
+export class ElevationCoverageError extends Error {
+  readonly unresolvedCount: number;
+
+  constructor(unresolvedCount: number, totalSamples: number) {
+    super(
+      `Elevation coverage too sparse: ${unresolvedCount} of ${totalSamples} sample points have no data`,
+    );
+    this.name = "ElevationCoverageError";
+    this.unresolvedCount = unresolvedCount;
+  }
+}
+
 /**
  * Turn a raw polyline into a validated elevation profile:
  * densify → cache-first elevation lookup → zip with cumulative distance.
@@ -45,15 +65,18 @@ export async function buildProfile(
   }
 
   const profile: ProfilePoint[] = [];
+  let skipped = 0;
   for (let i = 0; i < densified.length; i++) {
     const d = densified[i];
     const e = points[i];
     if (!d || !e) continue; // unreachable: lengths verified equal above
 
     if (e.elevationM === null) {
-      throw new Error(
-        `Elevation unavailable at (${d.lat}, ${d.lng}) — point is outside the provider dataset bounds`,
-      );
+      // Drop the gap: for gain/loss and Tobler this equals linear interpolation
+      // (an interpolated point lies on the chord between surviving neighbours),
+      // so a few SRTM void cells on a coastal trail don't kill the analysis.
+      skipped += 1;
+      continue;
     }
     if (Number.isNaN(e.elevationM)) {
       throw new Error(`Elevation is NaN at (${d.lat}, ${d.lng})`);
@@ -65,6 +88,15 @@ export async function buildProfile(
       lat: d.lat,
       lng: d.lng,
     });
+  }
+
+  // Isolated voids are tolerable; a route that is mostly outside coverage
+  // (drawn across water) is a user-input problem and fails typed (T10.7).
+  if (
+    skipped > 0 &&
+    (profile.length < 2 || skipped > densified.length * MAX_COVERAGE_GAP_FRACTION)
+  ) {
+    throw new ElevationCoverageError(skipped, densified.length);
   }
 
   validateProfile(profile);

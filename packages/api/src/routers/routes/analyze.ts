@@ -2,6 +2,7 @@ import { publicProcedure } from "../../index";
 import { createDefaultElevationService } from "../../integrations/elevation/default-service";
 import { ElevationUnavailableError } from "../../integrations/elevation/types";
 import { analyzeRoute, RouteTooLargeError } from "../../services/analyze";
+import { ElevationCoverageError } from "../../services/elevation-profile";
 import { analyzeInputSchema, analyzeOutputSchema } from "./analyze.schema";
 
 /**
@@ -24,6 +25,13 @@ export const analyze = publicProcedure
     } catch (err) {
       if (err instanceof RouteTooLargeError) {
         throw errors.VALIDATION({ message: err.message });
+      }
+      if (err instanceof ElevationCoverageError) {
+        // User-input problem (route over water / outside dataset bounds), not a
+        // transient outage — VALIDATION, not ELEVATION_UNAVAILABLE (T10.7).
+        throw errors.VALIDATION({
+          message: "Part of this route is outside elevation data coverage.",
+        });
       }
       if (err instanceof ElevationUnavailableError) {
         throw errors.ELEVATION_UNAVAILABLE({ data: { unresolvedCount: err.unresolvedCount } });
