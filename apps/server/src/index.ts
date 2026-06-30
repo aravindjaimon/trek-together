@@ -6,6 +6,8 @@ import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { createContext } from "@trek-together/api/context";
 import { appRouter } from "@trek-together/api/routers/index";
 import { auth } from "@trek-together/auth";
+import prisma from "@trek-together/db";
+import { verifyIndexes } from "@trek-together/db/verify-indexes";
 import { env } from "@trek-together/env/server";
 import { toNodeHandler } from "better-auth/node";
 import cors from "cors";
@@ -97,8 +99,20 @@ app.get("/", (_req, res) => {
   res.status(200).send("OK");
 });
 
-app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "ok" });
+// Readiness: reflects Mongo, so an orchestrator/LB stops routing to a server
+// that would 500 every DB call (T10.9). `GET /` above stays pure liveness.
+app.get("/health", async (_req, res) => {
+  try {
+    await Promise.race([
+      prisma.$runCommandRaw({ ping: 1 }),
+      new Promise((_resolve, reject) =>
+        setTimeout(() => reject(new Error("db ping timed out")), 2000),
+      ),
+    ]);
+    res.status(200).json({ status: "ok", db: "ok" });
+  } catch {
+    res.status(503).json({ status: "degraded", db: "down" });
+  }
 });
 
 // Centralized error backstop (T3.4): anything that escapes the oRPC handlers
@@ -114,6 +128,48 @@ const errorHandler: express.ErrorRequestHandler = (err, req, res, _next) => {
 };
 app.use(errorHandler);
 
-app.listen(env.PORT, () => {
+const server = app.listen(env.PORT, () => {
   console.log(`Server is running on http://localhost:${env.PORT}`);
+  // Warn loudly (don't crash) when the out-of-band Mongo indexes are missing —
+  // a raw `prisma db push` drops them; `pnpm db:push` restores them (T10.9).
+  verifyIndexes(prisma)
+    .then((missing) => {
+      for (const m of missing) {
+        console.error(
+          `[startup] MISSING INDEX ${m.collection}.${m.index} — run \`pnpm db:push\` (never raw \`prisma db push\`) to restore TTL/geo behaviour`,
+        );
+      }
+    })
+    .catch((err) => {
+      console.warn("[startup] index verification skipped:", err);
+    });
+});
+
+// Graceful shutdown (T10.9): stop accepting, drain in-flight requests, then
+// close Mongo — with a 10s force-exit cap so a hung connection can't wedge us.
+function shutdown(signal: string) {
+  console.log(`[shutdown] ${signal} received — draining connections`);
+  const force = setTimeout(() => {
+    console.error("[shutdown] force exit after 10s");
+    process.exit(1);
+  }, 10_000);
+  force.unref();
+  server.close(() => {
+    void prisma
+      .$disconnect()
+      .catch(() => undefined)
+      .finally(() => process.exit(0));
+  });
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+// Crash visibly instead of Node's silent default; the supervisor restarts us.
+process.on("unhandledRejection", (reason) => {
+  console.error("[fatal] unhandled rejection:", reason);
+  process.exit(1);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[fatal] uncaught exception:", err);
+  process.exit(1);
 });
