@@ -6,6 +6,8 @@ import type { Request } from "express";
 
 interface CreateContextOptions {
   req: Request;
+  /** Shared with the Express access log (T10.10), so one id correlates both. */
+  requestId?: string;
 }
 
 export async function createContext(opts: CreateContextOptions) {
@@ -15,7 +17,7 @@ export async function createContext(opts: CreateContextOptions) {
   return {
     db: prisma,
     session,
-    requestId: randomUUID(),
+    requestId: opts.requestId ?? randomUUID(),
   };
 }
 

@@ -1,6 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { OpenAPIHandler } from "@orpc/openapi/node";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
-import { onError } from "@orpc/server";
+import { ORPCError, onError } from "@orpc/server";
 import { BodyLimitPlugin, RPCHandler } from "@orpc/server/node";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { createContext } from "@trek-together/api/context";
@@ -33,6 +34,30 @@ if (env.NODE_ENV === "production") app.set("trust proxy", 1);
 // that script-src 'self' would block; everything else is JSON.
 app.use(helmet({ contentSecurityPolicy: false }));
 
+// Request id + one-line JSON access log (T10.10). The id is echoed as a
+// response header and flows into the oRPC context, so a client-reported error
+// correlates to exactly one server log line.
+app.use((req, res, next) => {
+  const header = req.headers["x-request-id"];
+  const requestId = typeof header === "string" && header.length > 0 ? header : randomUUID();
+  res.locals.requestId = requestId;
+  res.setHeader("x-request-id", requestId);
+  const startedAt = Date.now();
+  res.on("finish", () => {
+    console.log(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        requestId,
+        method: req.method,
+        path: req.path,
+        status: res.statusCode,
+        ms: Date.now() - startedAt,
+      }),
+    );
+  });
+  next();
+});
+
 app.use(
   cors({
     origin: env.CORS_ORIGIN,
@@ -55,13 +80,18 @@ app.use(
 
 app.all("/api/auth{/*path}", toNodeHandler(auth));
 
+// Expected request-level outcomes (401/404/bad input) are visible in the
+// access log's status code; error-logging them buries real faults (T10.10).
+const EXPECTED_ORPC_CODES = new Set(["UNAUTHORIZED", "NOT_FOUND", "BAD_REQUEST", "VALIDATION"]);
+
+function logUnexpectedError(error: unknown) {
+  if (error instanceof ORPCError && EXPECTED_ORPC_CODES.has(error.code)) return;
+  console.error("[rpc]", error);
+}
+
 const rpcHandler = new RPCHandler(appRouter, {
   plugins: [new BodyLimitPlugin({ maxBodySize: MAX_BODY_BYTES })],
-  interceptors: [
-    onError((error) => {
-      console.error(error);
-    }),
-  ],
+  interceptors: [onError(logUnexpectedError)],
 });
 const apiHandler = new OpenAPIHandler(appRouter, {
   plugins: [
@@ -70,23 +100,20 @@ const apiHandler = new OpenAPIHandler(appRouter, {
     }),
     new BodyLimitPlugin({ maxBodySize: MAX_BODY_BYTES }),
   ],
-  interceptors: [
-    onError((error) => {
-      console.error(error);
-    }),
-  ],
+  interceptors: [onError(logUnexpectedError)],
 });
 
 app.use(async (req, res, next) => {
+  const requestId = res.locals.requestId as string;
   const rpcResult = await rpcHandler.handle(req, res, {
     prefix: "/rpc",
-    context: await createContext({ req }),
+    context: await createContext({ req, requestId }),
   });
   if (rpcResult.matched) return;
 
   const apiResult = await apiHandler.handle(req, res, {
     prefix: "/api-reference",
-    context: await createContext({ req }),
+    context: await createContext({ req, requestId }),
   });
   if (apiResult.matched) return;
 
