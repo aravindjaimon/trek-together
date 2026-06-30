@@ -21,6 +21,14 @@ export function createAuth() {
     emailAndPassword: {
       enabled: true,
     },
+    // Explicitly on in every environment (Better-Auth's default is prod-only):
+    // its built-in per-path rules throttle sign-in/sign-up harder than the
+    // coarse per-IP Express backstop (T10.8). In-memory storage — one process.
+    rateLimit: {
+      enabled: true,
+      window: 60,
+      max: 20,
+    },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
     advanced: {
