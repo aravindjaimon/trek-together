@@ -11,6 +11,7 @@ import { Toaster } from "@trek-together/ui/components/sonner";
 
 import Header from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { useOnline } from "@/lib/use-online";
 import type { orpc } from "@/utils/orpc";
 
 import "../index.css";
@@ -42,9 +43,23 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   }),
 });
 
+// Slim, persistent signal that the network is gone — without it, offline
+// failures masquerade as empty pages (T10.14).
+function OfflineBanner() {
+  return (
+    <div
+      role="status"
+      className="border-b border-border bg-trail/15 px-4 py-1.5 text-center text-xs font-medium"
+    >
+      You’re offline — showing saved routes and maps.
+    </div>
+  );
+}
+
 function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAuthRoute = pathname === "/login" || pathname === "/register";
+  const online = useOnline();
 
   return (
     <>
@@ -59,12 +74,14 @@ function RootComponent() {
         {isAuthRoute ? (
           // Auth screens are their own chrome-free surface — no app header.
           <main className="h-svh overflow-y-auto">
+            {!online && <OfflineBanner />}
             <Outlet />
           </main>
         ) : (
-          <div className="grid grid-rows-[auto_1fr] h-svh">
+          <div className="flex h-svh flex-col">
+            {!online && <OfflineBanner />}
             <Header />
-            <main className="min-h-0 overflow-y-auto">
+            <main className="min-h-0 flex-1 overflow-y-auto">
               <Outlet />
             </main>
           </div>

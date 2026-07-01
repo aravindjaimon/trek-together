@@ -10,6 +10,7 @@ import { type LatLng, LeafletMap, type MapMarker } from "@/components/leaflet-ma
 import { QueryErrorCard } from "@/components/query-error-card";
 import { formatDistance, pathToLatLngs } from "@/lib/format";
 import { useGeolocate } from "@/lib/use-geolocate";
+import { useOnline } from "@/lib/use-online";
 import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/explore")({
@@ -23,6 +24,7 @@ function ExplorePage() {
   const [center, setCenter] = useState<LatLng>(SHENANDOAH);
   const [located, setLocated] = useState<LatLng>();
   const { locate, isLocating } = useGeolocate();
+  const online = useOnline();
 
   const explore = useQuery({
     ...orpc.routes.explore.queryOptions({
@@ -108,8 +110,12 @@ function ExplorePage() {
 
         {explore.isError && (
           <QueryErrorCard
-            title="Couldn’t load nearby routes"
-            body="Something went wrong reaching the server. Your connection or the service may be down."
+            title={online ? "Couldn’t load nearby routes" : "You’re offline"}
+            body={
+              online
+                ? "Something went wrong reaching the server. Your connection or the service may be down."
+                : "Exploring nearby routes needs a connection. Previously viewed routes still open from your saved data."
+            }
             onRetry={() => explore.refetch()}
           />
         )}

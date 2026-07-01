@@ -8,6 +8,7 @@ import { DifficultyBadge } from "@/components/difficulty-badge";
 import { QueryErrorCard } from "@/components/query-error-card";
 import { useSession } from "@/lib/auth-client";
 import { formatDistance } from "@/lib/format";
+import { useOnline } from "@/lib/use-online";
 import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/routes")({
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/routes")({
 
 function MyRoutesPage() {
   const { data: session, isPending } = useSession();
+  const online = useOnline();
   const list = useQuery({
     ...orpc.routes.listMine.queryOptions({ input: { page: 1, limit: 50 } }),
     enabled: !!session,
@@ -59,8 +61,12 @@ function MyRoutesPage() {
 
       {list.isError && (
         <QueryErrorCard
-          title="Couldn’t load your routes"
-          body="Something went wrong reaching the server. Your saved routes are safe — try again in a moment."
+          title={online ? "Couldn’t load your routes" : "You’re offline"}
+          body={
+            online
+              ? "Something went wrong reaching the server. Your saved routes are safe — try again in a moment."
+              : "Your saved routes are safe on the server; this list needs a connection. Previously viewed routes still open offline."
+          }
           onRetry={() => list.refetch()}
         />
       )}
