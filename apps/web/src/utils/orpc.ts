@@ -30,9 +30,15 @@ export const queryClient = createQueryClient();
 export const link = new RPCLink({
   url: `${env.VITE_SERVER_URL}/rpc`,
   fetch(url, options) {
+    // Hard 60s ceiling on every request (composed with any caller signal): a
+    // hung provider must surface as an error, not an eternal spinner. 60s
+    // because a cold multi-batch analyze can legitimately take ~50s at 1 req/s.
+    const init = options as RequestInit;
+    const timeout = AbortSignal.timeout(60_000);
     return fetch(url, {
-      ...options,
+      ...init,
       credentials: "include",
+      signal: init.signal ? AbortSignal.any([init.signal, timeout]) : timeout,
     });
   },
 });

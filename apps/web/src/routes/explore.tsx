@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { type LatLng, LeafletMap, type MapMarker } from "@/components/leaflet-map";
+import { QueryErrorCard } from "@/components/query-error-card";
 import { formatDistance, pathToLatLngs } from "@/lib/format";
 import { useGeolocate } from "@/lib/use-geolocate";
 import { orpc } from "@/utils/orpc";
@@ -23,11 +24,13 @@ function ExplorePage() {
   const [located, setLocated] = useState<LatLng>();
   const { locate, isLocating } = useGeolocate();
 
-  const explore = useQuery(
-    orpc.routes.explore.queryOptions({
+  const explore = useQuery({
+    ...orpc.routes.explore.queryOptions({
       input: { lat: center.lat, lng: center.lng, radiusM: 50_000, limit: 50 },
     }),
-  );
+    // The inline error card below is the signal — no global toast (T10.12).
+    meta: { silentError: true },
+  });
 
   const items = explore.data?.items ?? [];
   const markers: MapMarker[] = items.flatMap((r) => {
@@ -67,7 +70,7 @@ function ExplorePage() {
         <div className="flex items-baseline justify-between gap-3">
           <h1 className="text-base font-semibold tracking-tight">Explore</h1>
           <div className="flex items-center gap-2.5">
-            {!explore.isLoading && (
+            {!explore.isLoading && !explore.isError && (
               <span className="tnum text-sm text-muted-foreground">
                 {items.length} route{items.length === 1 ? "" : "s"}
               </span>
@@ -103,7 +106,15 @@ function ExplorePage() {
           </ul>
         )}
 
-        {!explore.isLoading && items.length === 0 && (
+        {explore.isError && (
+          <QueryErrorCard
+            title="Couldn’t load nearby routes"
+            body="Something went wrong reaching the server. Your connection or the service may be down."
+            onRetry={() => explore.refetch()}
+          />
+        )}
+
+        {!explore.isLoading && !explore.isError && items.length === 0 && (
           <div className="mt-6 flex flex-col items-center gap-3 rounded-md border border-dashed border-border bg-card px-6 py-10 text-center">
             <MapPin size={22} className="text-muted-foreground" />
             <p className="text-sm text-muted-foreground text-pretty">

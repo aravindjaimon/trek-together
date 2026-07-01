@@ -5,6 +5,7 @@ import { Skeleton } from "@trek-together/ui/components/skeleton";
 import { Globe, Plus } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
+import { QueryErrorCard } from "@/components/query-error-card";
 import { useSession } from "@/lib/auth-client";
 import { formatDistance } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
@@ -18,6 +19,8 @@ function MyRoutesPage() {
   const list = useQuery({
     ...orpc.routes.listMine.queryOptions({ input: { page: 1, limit: 50 } }),
     enabled: !!session,
+    // The inline error card below is the signal — no global toast (T10.12).
+    meta: { silentError: true },
   });
 
   if (!isPending && !session) {
@@ -52,6 +55,14 @@ function MyRoutesPage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {list.isError && (
+        <QueryErrorCard
+          title="Couldn’t load your routes"
+          body="Something went wrong reaching the server. Your saved routes are safe — try again in a moment."
+          onRetry={() => list.refetch()}
+        />
       )}
 
       {list.data && list.data.items.length === 0 && (

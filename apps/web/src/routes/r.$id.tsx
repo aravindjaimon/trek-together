@@ -22,7 +22,11 @@ function RouteViewPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const query = useQuery(orpc.routes.getById.queryOptions({ input: { id } }));
+  const query = useQuery({
+    ...orpc.routes.getById.queryOptions({ input: { id } }),
+    // The "Route unavailable" card below is the signal — no global toast.
+    meta: { silentError: true },
+  });
 
   const exportMut = useMutation({
     mutationFn: (format: "gpx" | "json") => client.routes.exportItinerary({ id, format }),
