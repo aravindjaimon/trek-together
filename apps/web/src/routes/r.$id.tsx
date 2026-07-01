@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@trek-together/ui/components/button";
 import { Skeleton } from "@trek-together/ui/components/skeleton";
 import { Download, Link2, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
@@ -33,6 +34,16 @@ function RouteViewPage() {
     onSuccess: (payload) => downloadText(payload.filename, payload.contentType, payload.content),
     onError: (e) => toast.error(e.message),
   });
+
+  // Two-step delete confirm (T10.13): first click arms the button, second
+  // deletes; it disarms after 4s. Deletion is permanent and the button sits
+  // beside the export actions — one misclick must not destroy a route.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  useEffect(() => {
+    if (!confirmingDelete) return;
+    const timer = setTimeout(() => setConfirmingDelete(false), 4000);
+    return () => clearTimeout(timer);
+  }, [confirmingDelete]);
 
   const del = useMutation({
     mutationFn: () => client.routes.remove({ id }),
@@ -141,10 +152,11 @@ function RouteViewPage() {
           <Button
             variant="destructive"
             className="ml-auto"
-            onClick={() => del.mutate()}
+            onClick={() => (confirmingDelete ? del.mutate() : setConfirmingDelete(true))}
             disabled={del.isPending}
+            aria-live="polite"
           >
-            <Trash2 size={16} /> Delete
+            <Trash2 size={16} /> {confirmingDelete ? "Really delete?" : "Delete"}
           </Button>
         )}
       </div>

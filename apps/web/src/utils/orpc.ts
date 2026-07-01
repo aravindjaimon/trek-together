@@ -1,6 +1,7 @@
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import type { AppRouterClient } from "@trek-together/api/routers/index";
 import { env } from "@trek-together/env/web";
@@ -26,6 +27,11 @@ export function createQueryClient() {
 }
 
 export const queryClient = createQueryClient();
+
+// Persists the query cache to localStorage for offline reloads (T8.3).
+// Exported so sign-out can purge it — cached private routes must not survive
+// on a shared device (T10.13).
+export const persister = createSyncStoragePersister({ storage: window.localStorage });
 
 export const link = new RPCLink({
   url: `${env.VITE_SERVER_URL}/rpc`,

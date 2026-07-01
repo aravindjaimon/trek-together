@@ -1,16 +1,12 @@
-import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
 import Loader from "./components/loader";
 import { routeTree } from "./routeTree.gen";
-import { orpc, queryClient } from "./utils/orpc";
-
-// Persist the query cache to localStorage so a previously viewed route's data
-// (getById / analysis) survives an offline reload, alongside the SW-cached map
-// tiles + app shell (T8.3).
-const persister = createSyncStoragePersister({ storage: window.localStorage });
+// The persister (localStorage query cache for offline reloads, T8.3) lives in
+// utils/orpc so sign-out can purge it (T10.13).
+import { orpc, persister, queryClient } from "./utils/orpc";
 
 const router = createRouter({
   routeTree,

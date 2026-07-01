@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@trek-together/ui/components/button";
 
 import { signOut, useSession } from "@/lib/auth-client";
+import { persister, queryClient } from "@/utils/orpc";
 
 import { BrandMark } from "./brand-mark";
 import { ModeToggle } from "./mode-toggle";
@@ -56,6 +57,10 @@ export default function Header() {
                 size="sm"
                 onClick={async () => {
                   await signOut();
+                  // Purge in-memory + persisted caches: private routes must not
+                  // outlive the session on a shared device (T10.13).
+                  queryClient.clear();
+                  await persister.removeClient();
                   navigate({ to: "/login" });
                 }}
               >
