@@ -2,7 +2,9 @@ name: trek-together
 
 services:
   mongodb:
-    image: mongo
+    # Pinned: an unpinned `mongo` can jump majors on a fresh pull. 8.2 matches
+    # the data files already in the named volume (a downgrade wouldn't boot).
+    image: mongo:8.2
     container_name: trek-together-mongodb
     # Run as a single-node replica set — Prisma's MongoDB connector requires one
     # for transactions (Better-Auth uses them). Auth is intentionally OFF for local

@@ -1,10 +1,9 @@
-import { createPrismaClient } from "@trek-together/db";
+import prisma from "@trek-together/db";
 import { env } from "@trek-together/env/server";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 
 export function createAuth() {
-  const prisma = createPrismaClient();
   // Drive cookie hardening off the actual transport (the Better-Auth base URL),
   // not NODE_ENV. Secure / cross-site cookies require HTTPS and never persist over
   // plain http://localhost; tying them to the URL scheme is fail-secure — a
