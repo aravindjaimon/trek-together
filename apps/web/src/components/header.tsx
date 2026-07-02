@@ -56,12 +56,17 @@ export default function Header() {
                 variant="outline"
                 size="sm"
                 onClick={async () => {
-                  await signOut();
-                  // Purge in-memory + persisted caches: private routes must not
-                  // outlive the session on a shared device (T10.13).
-                  queryClient.clear();
-                  await persister.removeClient();
-                  navigate({ to: "/login" });
+                  // Purge local caches even if the server sign-out fails —
+                  // the local wipe IS the privacy guarantee (private routes must
+                  // not outlive the session on a shared device, T10.13), so it
+                  // must not be gated behind a network call that can reject.
+                  try {
+                    await signOut();
+                  } finally {
+                    queryClient.clear();
+                    await persister.removeClient();
+                    navigate({ to: "/login" });
+                  }
                 }}
               >
                 Sign out
