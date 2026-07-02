@@ -47,7 +47,7 @@
   --grade-1: oklch(0.5 0.12 155);
   --grade-2: oklch(0.52 0.13 128);
   --grade-3: oklch(0.51 0.115 78);
-  --grade-4: oklch(0.55 0.18 42);
+  --grade-4: oklch(0.52 0.18 42);
   --grade-5: oklch(0.53 0.2 27);
 
   /* Charts key off the same identity: area = brand, stroke = trail. */
