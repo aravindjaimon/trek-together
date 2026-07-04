@@ -1,0 +1,39 @@
+/// A completed-trek log entry — the SPEC §5.6 community layer (see
+/// docs/decisions/trek-logs.md). An authenticated user records how a real trek
+/// went on a route they can see; aggregated into per-route stats.
+///
+/// Embed-vs-reference (mirrors the Route model's choices):
+///   - `userId` / `routeId` are **referenced** (no Prisma relation) — MongoDB
+///     enforces no FK, and both have independent lifecycles.
+///   - `userName` is **denormalized** at create time so listing logs never needs
+///     a $lookup against the auth `user` collection (a renamed user's old logs
+///     keep the old name — acceptable for a community feed).
+///
+/// Value bounds (rating 1–5, non-future date, duration 0 < d ≤ 7 days, notes
+/// ≤ 2000 chars) are enforced in app code (Zod), not by Prisma.
+model TrekLog {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  /// Author (better-auth user id — a String, not ObjectId). Referenced, not related.
+  userId String
+  /// Denormalized author display name (see header note).
+  userName String
+
+  /// The route this log is for. Referenced, not related.
+  routeId String @db.ObjectId
+
+  /// The date the trek was completed (date semantics; stored UTC).
+  completedOn DateTime
+  /// How long the trek actually took, SI seconds — compared against the route's estimate.
+  actualDurationS Float
+  /// 1–5; validated against the range in app code (Zod), stored as Int.
+  rating Int
+  notes  String?
+
+  createdAt DateTime @default(now())
+
+  /// List newest-first for a route (the listForRoute read path).
+  @@index([routeId, createdAt(sort: Desc)])
+  @@index([userId])
+  @@map("trekLogs")
+}
