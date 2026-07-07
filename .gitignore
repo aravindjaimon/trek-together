@@ -27,8 +27,9 @@ apps/web/src/routeTree.gen.ts
 *~
 .DS_Store
 
-# Logs
-logs
+# Logs — anchored to repo root so it never matches source
+# (e.g. packages/api/src/routers/logs/). A bare `logs` swallowed the logs router.
+/logs/
 *.log
 npm-debug.log*
 yarn-debug.log*

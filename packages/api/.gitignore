@@ -10,10 +10,11 @@ dist
 coverage
 *.lcov
 
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+# logs — scope to a package-root output dir so it never matches source
+# (e.g. src/routers/logs/). A bare `logs` swallowed the logs router source.
+/logs/
+*.log
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # dotenv environment variable files
 .env
