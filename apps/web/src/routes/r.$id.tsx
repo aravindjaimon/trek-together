@@ -10,6 +10,7 @@ import { DifficultyBadge } from "@/components/difficulty-badge";
 import { ElevationChart } from "@/components/elevation-chart";
 import { LeafletMap } from "@/components/leaflet-map";
 import { RouteSummary } from "@/components/route-summary";
+import { TrekLogs } from "@/components/trek-logs";
 import { useSession } from "@/lib/auth-client";
 import { downloadText } from "@/lib/download";
 import { pathToLatLngs } from "@/lib/format";
@@ -160,6 +161,8 @@ function RouteViewPage() {
           </Button>
         )}
       </div>
+
+      <TrekLogs routeId={route.id} predictedTimeS={route.estTimeNaismithS} />
     </div>
   );
 }
