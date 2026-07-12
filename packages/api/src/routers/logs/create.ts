@@ -1,7 +1,7 @@
 import { createPrismaLogsRepo, type TrekLogRecord } from "../../data/logs.repo";
 import { createPrismaRoutesRepo } from "../../data/routes.repo";
 import { protectedProcedure } from "../../index";
-import { findVisibleRoute } from "../routes/authz";
+import { isRouteVisible } from "../routes/authz";
 import { createLogInputSchema, logSchema } from "./log.schema";
 
 /** Strip the internal `userId`; clients see the display `userName` only. */
@@ -29,8 +29,7 @@ export const create = protectedProcedure
   .output(logSchema)
   .handler(async ({ input, context, errors }) => {
     const routesRepo = createPrismaRoutesRepo(context.db);
-    const route = await findVisibleRoute(routesRepo, input.routeId, context.session.user.id);
-    if (!route) {
+    if (!(await isRouteVisible(routesRepo, input.routeId, context.session.user.id))) {
       throw errors.NOT_FOUND();
     }
 

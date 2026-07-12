@@ -28,3 +28,18 @@ export async function findVisibleRoute(
   const route = await repo.findById(id);
   return route && (route.isPublic || route.ownerId === userId) ? route : null;
 }
+
+/**
+ * Same visibility rule as {@link findVisibleRoute}, but for gates that only need
+ * yes/no and discard the route (`logs.listForRoute` / `logs.create`). Reads a
+ * projected `{ ownerId, isPublic }` instead of the full document — no GeoJSON
+ * path or elevation profile crosses the wire just to decide access.
+ */
+export async function isRouteVisible(
+  repo: RoutesRepo,
+  id: string,
+  userId: string | undefined,
+): Promise<boolean> {
+  const v = await repo.findVisibility(id);
+  return !!v && (v.isPublic || v.ownerId === userId);
+}

@@ -21,8 +21,8 @@ vi.mock("../../integrations/routing/default-service", () => ({
   createDefaultRoutingService: () => ({ snap: async () => [] }),
 }));
 
-// In-memory routes store — logs authz calls findById via findVisibleRoute, so we
-// need real create + findById; only the fields the read gate reads matter.
+// In-memory routes store — logs authz calls findVisibility (the projected gate),
+// and create needs findById; only the fields the read gate reads matter.
 const routes = vi.hoisted(() => {
   // biome-ignore lint/suspicious/noExplicitAny: in-memory stand-in
   const store = new Map<string, any>();
@@ -45,6 +45,10 @@ vi.mock("../../data/routes.repo", () => ({
     },
     async findById(id: string) {
       return routes.store.get(id) ?? null;
+    },
+    async findVisibility(id: string) {
+      const r = routes.store.get(id);
+      return r ? { ownerId: r.ownerId, isPublic: r.isPublic } : null;
     },
   }),
 }));

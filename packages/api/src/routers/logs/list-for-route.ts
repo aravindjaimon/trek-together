@@ -1,7 +1,7 @@
 import { createPrismaLogsRepo } from "../../data/logs.repo";
 import { createPrismaRoutesRepo } from "../../data/routes.repo";
 import { publicProcedure } from "../../index";
-import { findVisibleRoute } from "../routes/authz";
+import { isRouteVisible } from "../routes/authz";
 import { listLogsInputSchema, listLogsOutputSchema } from "./log.schema";
 
 /**
@@ -15,8 +15,7 @@ export const listForRoute = publicProcedure
   .output(listLogsOutputSchema)
   .handler(async ({ input, context, errors }) => {
     const routesRepo = createPrismaRoutesRepo(context.db);
-    const route = await findVisibleRoute(routesRepo, input.routeId, context.session?.user.id);
-    if (!route) {
+    if (!(await isRouteVisible(routesRepo, input.routeId, context.session?.user.id))) {
       throw errors.NOT_FOUND();
     }
 

@@ -79,6 +79,13 @@ const MAX_LIMIT = 100;
 export interface RoutesRepo {
   create(input: CreateRouteInput): Promise<RouteRecord>;
   findById(id: string): Promise<RouteRecord | null>;
+  /**
+   * Projected visibility gate — just `ownerId`/`isPublic`, not the whole route.
+   * Read gates (`logs.*`) that only decide access must not hydrate the full
+   * document (GeoJSON path + up-to-5000-point elevation profile) to test two
+   * booleans. Returns `null` when the route doesn't exist.
+   */
+  findVisibility(id: string): Promise<{ ownerId: string; isPublic: boolean } | null>;
   listByOwner(args: ListByOwnerArgs): Promise<ListByOwnerResult>;
   exploreNear(args: ExploreNearArgs): Promise<ExploreNearResult>;
   update(id: string, patch: UpdateRouteInput): Promise<RouteRecord>;
@@ -163,6 +170,10 @@ export function createPrismaRoutesRepo(db: PrismaClient = prisma): RoutesRepo {
     async findById(id) {
       const doc = await db.route.findUnique({ where: { id } });
       return doc ? mapRoute(doc) : null;
+    },
+
+    async findVisibility(id) {
+      return db.route.findUnique({ where: { id }, select: { ownerId: true, isPublic: true } });
     },
 
     async listByOwner({ ownerId, page, limit }) {
