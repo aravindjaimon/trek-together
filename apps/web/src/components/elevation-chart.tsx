@@ -27,9 +27,14 @@ export function ElevationChart({ profile }: { profile: ProfilePoint[] }) {
   }
 
   const maxDist = profile[profile.length - 1]?.distanceAlongM ?? 1;
-  const elevs = profile.map((p) => p.elevationM);
-  const minEl = Math.min(...elevs);
-  const maxEl = Math.max(...elevs);
+  // reduce, not Math.min(...spread): a long profile would blow the argument-count
+  // limit (RangeError), and this is a single pass either way.
+  let minEl = profile[0]?.elevationM ?? 0;
+  let maxEl = minEl;
+  for (const p of profile) {
+    if (p.elevationM < minEl) minEl = p.elevationM;
+    if (p.elevationM > maxEl) maxEl = p.elevationM;
+  }
   const elRange = maxEl - minEl || 1;
 
   const innerW = W - PAD.left - PAD.right;

@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@trek-together/ui/components/button";
 import { Skeleton } from "@trek-together/ui/components/skeleton";
 import { Download, Link2, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
@@ -56,6 +56,15 @@ function RouteViewPage() {
     onError: (e) => toast.error(e.message),
   });
 
+  // Derive the map geometry once per route (not per render): a fresh array on
+  // every render — e.g. when the delete button arms/disarms — would re-run the
+  // Leaflet redraw and re-fit the bounds for no reason. Empty until data lands;
+  // the map only renders past the early returns below.
+  const { latlngs, endpoints } = useMemo(() => {
+    const ll = query.data ? pathToLatLngs(query.data.path) : [];
+    return { latlngs: ll, endpoints: [...ll.slice(0, 1), ...ll.slice(-1)] };
+  }, [query.data]);
+
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -94,7 +103,6 @@ function RouteViewPage() {
   }
 
   const route = query.data;
-  const latlngs = pathToLatLngs(route.path);
   const isOwner = session?.user.id === route.ownerId;
 
   return (
@@ -114,7 +122,7 @@ function RouteViewPage() {
       <LeafletMap
         className="mt-5 h-[360px] w-full overflow-hidden rounded-lg border border-border"
         polyline={latlngs}
-        waypoints={[...latlngs.slice(0, 1), ...latlngs.slice(-1)]}
+        waypoints={endpoints}
         fitTo={latlngs}
       />
 

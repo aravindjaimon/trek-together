@@ -35,17 +35,24 @@ function ExplorePage() {
   });
 
   const items = explore.data?.items ?? [];
-  const markers: MapMarker[] = items.flatMap((r) => {
-    const start = pathToLatLngs(r.path)[0];
-    if (!start) return [];
-    return [
-      {
-        ...start,
-        label: `${r.name} · ${formatDistance(r.distanceM)}`,
-        onClick: () => navigate({ to: "/r/$id", params: { id: r.id } }),
-      },
-    ];
-  });
+  // Memoized on the result set: without this, a fresh markers array on every
+  // render (e.g. when `isLocating` toggles) tears down and rebuilds all ~50
+  // Leaflet layers even though the pins are unchanged.
+  const markers = useMemo<MapMarker[]>(
+    () =>
+      items.flatMap((r) => {
+        const start = pathToLatLngs(r.path)[0];
+        if (!start) return [];
+        return [
+          {
+            ...start,
+            label: `${r.name} · ${formatDistance(r.distanceM)}`,
+            onClick: () => navigate({ to: "/r/$id", params: { id: r.id } }),
+          },
+        ];
+      }),
+    [explore.data],
+  );
 
   // After "Near me", fit to the located point plus the result pins around it —
   // not a lone point at max zoom — re-fitting once the recentred results land.

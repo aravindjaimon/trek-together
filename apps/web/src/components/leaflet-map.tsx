@@ -49,7 +49,12 @@ export function LeafletMap({
 }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const layerRef = useRef<L.LayerGroup | null>(null);
+  // Persistent route polylines (casing under blaze) + a group for the dynamic
+  // markers, all created once so redraws mutate them instead of recreating them.
+  const casingRef = useRef<L.Polyline | null>(null);
+  const blazeRef = useRef<L.Polyline | null>(null);
+  const markersRef = useRef<L.LayerGroup | null>(null);
+  const themeRef = useRef({ trail: "#e8621f", brand: "#3f8f5f" });
   const clickRef = useRef(onMapClick);
   clickRef.current = onMapClick;
 
@@ -61,36 +66,56 @@ export function LeafletMap({
     map.on("click", (e: L.LeafletMouseEvent) => {
       clickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
-    layerRef.current = L.layerGroup().addTo(map);
+
+    // Read theme tokens once here — not on every redraw, where getComputedStyle
+    // forced a synchronous style reflow for colors that don't change per redraw.
+    const css = getComputedStyle(document.documentElement);
+    themeRef.current = {
+      trail: css.getPropertyValue("--trail").trim() || "#e8621f",
+      brand: css.getPropertyValue("--primary").trim() || "#3f8f5f",
+    };
+
+    // Dark casing under the blaze line keeps the route legible over any tile.
+    // Added before the marker group so waypoints/markers stay on top.
+    casingRef.current = L.polyline([], {
+      color: "rgba(20,25,20,0.35)",
+      weight: 8,
+      lineJoin: "round",
+    }).addTo(map);
+    blazeRef.current = L.polyline([], {
+      color: themeRef.current.trail,
+      weight: 4,
+      lineJoin: "round",
+    }).addTo(map);
+    markersRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
     return () => {
       map.remove();
       mapRef.current = null;
+      casingRef.current = null;
+      blazeRef.current = null;
+      markersRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Redraw polyline + markers whenever they change.
   useEffect(() => {
-    const layer = layerRef.current;
-    if (!layer) return;
+    const casing = casingRef.current;
+    const blaze = blazeRef.current;
+    const layer = markersRef.current;
+    if (!casing || !blaze || !layer) return;
+    const { trail, brand } = themeRef.current;
+
+    // Update the route line in place (setLatLngs) rather than clearing and
+    // recreating polylines of potentially hundreds of snapped vertices per edit.
+    const latlngs = (polyline ?? []).map((p) => [p.lat, p.lng] as [number, number]);
+    const line = latlngs.length > 1 ? latlngs : [];
+    casing.setLatLngs(line);
+    blaze.setLatLngs(line);
+
+    // Markers/waypoints are few (≤ ~50) and vary in count — a group clear is fine.
     layer.clearLayers();
-
-    // Pull live theme tokens so the map matches the design system.
-    const css = getComputedStyle(document.documentElement);
-    const trail = css.getPropertyValue("--trail").trim() || "#e8621f";
-    const brand = css.getPropertyValue("--primary").trim() || "#3f8f5f";
-
-    if (polyline && polyline.length > 0) {
-      const latlngs = polyline.map((p) => [p.lat, p.lng] as [number, number]);
-      if (latlngs.length > 1) {
-        // Dark casing under the blaze line keeps the route legible over any tile.
-        L.polyline(latlngs, { color: "rgba(20,25,20,0.35)", weight: 8, lineJoin: "round" }).addTo(
-          layer,
-        );
-        L.polyline(latlngs, { color: trail, weight: 4, lineJoin: "round" }).addTo(layer);
-      }
-    }
 
     // Dots for waypoints only (the clicks) — not per snapped polyline vertex.
     for (const p of waypoints ?? []) {

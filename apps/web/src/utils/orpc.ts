@@ -9,6 +9,17 @@ import { toast } from "sonner";
 
 export function createQueryClient() {
   return new QueryClient({
+    defaultOptions: {
+      queries: {
+        // Routes/logs are near-static within a session: treat data as fresh for
+        // 60s so navigating back or refocusing the tab reuses the cache instead
+        // of refetching on every mount (staleTime defaults to 0). gcTime spans a
+        // day so the localStorage-persisted cache (below) still serves offline
+        // reloads rather than being evicted after the 5-min default.
+        staleTime: 60_000,
+        gcTime: 1000 * 60 * 60 * 24,
+      },
+    },
     queryCache: new QueryCache({
       onError: (error, query) => {
         // Queries that render their own failure state opt out of the toast.
