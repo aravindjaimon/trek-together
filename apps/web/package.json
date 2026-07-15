@@ -8,7 +8,7 @@
     "build": "vite build",
     "serve": "vite preview",
     "start": "vite",
-    "check-types": "vite build && tsc --noEmit",
+    "check-types": "tsc --noEmit",
     "generate-pwa-assets": "pwa-assets-generator"
   },
   "dependencies": {
@@ -28,7 +28,7 @@
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "leaflet": "^1.9.4",
-    "lucide-react": "^1.8.0",
+    "lucide-react": "catalog:",
     "next-themes": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
