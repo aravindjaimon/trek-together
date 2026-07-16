@@ -29,6 +29,10 @@ export const errorCatalogue = {
   ROUTING_UNAVAILABLE: {
     message: "Trail routing is temporarily unavailable.",
   },
+  /** Place search / geocoding provider failed — the client shows no matches. */
+  GEOCODING_UNAVAILABLE: {
+    message: "Place search is temporarily unavailable.",
+  },
   INTERNAL: {
     message: "An unexpected error occurred.",
   },

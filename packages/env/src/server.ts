@@ -22,6 +22,9 @@ export const env = createEnv({
     ROUTING_PROVIDER: z.enum(["mapbox"]).default("mapbox"),
     MAPBOX_ACCESS_TOKEN: z.string().optional(),
     MAPBOX_DIRECTIONS_URL: z.url().default("https://api.mapbox.com/directions/v5/mapbox/walking"),
+    // Geocoding (place search) config — Nominatim is keyless; defaults baked in.
+    GEOCODING_PROVIDER: z.enum(["nominatim"]).default("nominatim"),
+    NOMINATIM_BASE_URL: z.url().default("https://nominatim.openstreetmap.org"),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
