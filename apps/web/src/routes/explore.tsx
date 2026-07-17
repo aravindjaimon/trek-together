@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { type LatLng, LeafletMap, type MapMarker } from "@/components/leaflet-map";
+import { MapSearch } from "@/components/map-search";
 import { QueryErrorCard } from "@/components/query-error-card";
 import { formatDistance, pathToLatLngs } from "@/lib/format";
 import { useGeolocate } from "@/lib/use-geolocate";
@@ -23,6 +24,10 @@ function ExplorePage() {
   const navigate = useNavigate();
   const [center, setCenter] = useState<LatLng>(SHENANDOAH);
   const [located, setLocated] = useState<LatLng>();
+  // A picked search result fits the map to that place, taking precedence over
+  // the geolocate fit until the next "Near me".
+  const [searchFit, setSearchFit] = useState<LatLng[]>();
+  const [searched, setSearched] = useState(false);
   const { locate, isLocating } = useGeolocate();
   const online = useOnline();
 
@@ -57,23 +62,34 @@ function ExplorePage() {
   // After "Near me", fit to the located point plus the result pins around it —
   // not a lone point at max zoom — re-fitting once the recentred results land.
   const fitTo = useMemo<LatLng[] | undefined>(() => {
+    if (searchFit) return searchFit;
     if (!located) return undefined;
     const starts = (explore.data?.items ?? []).flatMap((r) => {
       const start = pathToLatLngs(r.path)[0];
       return start ? [start] : [];
     });
     return [located, ...starts];
-  }, [located, explore.data]);
+  }, [searchFit, located, explore.data]);
 
   return (
     <div className="flex min-h-full flex-col lg:grid lg:h-full lg:grid-cols-[1fr_372px]">
-      <LeafletMap
-        className="h-[45vh] w-full lg:h-full"
-        center={center}
-        zoom={10}
-        markers={markers}
-        fitTo={fitTo}
-      />
+      <div className="relative h-[45vh] w-full lg:h-full">
+        <LeafletMap
+          className="h-full w-full"
+          center={center}
+          zoom={10}
+          markers={markers}
+          fitTo={fitTo}
+        />
+        <MapSearch
+          className="absolute top-4 left-4 z-[1000] w-[min(20rem,calc(100%-2rem))]"
+          onSelect={(p) => {
+            setCenter({ lat: p.lat, lng: p.lng });
+            setSearchFit(p.boundingBox ?? [{ lat: p.lat, lng: p.lng }]);
+            setSearched(true);
+          }}
+        />
+      </div>
 
       <aside className="flex flex-col border-t border-border bg-sidebar p-5 lg:overflow-y-auto lg:border-t-0 lg:border-l">
         <div className="flex items-baseline justify-between gap-3">
@@ -92,6 +108,8 @@ function ExplorePage() {
                 locate((p) => {
                   setCenter(p);
                   setLocated(p);
+                  setSearchFit(undefined);
+                  setSearched(false);
                 })
               }
             >
@@ -101,7 +119,11 @@ function ExplorePage() {
           </div>
         </div>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {located ? "Public routes near you." : "Public routes near Shenandoah NP."}
+          {located
+            ? "Public routes near you."
+            : searched
+              ? "Public routes near your search."
+              : "Public routes near Shenandoah NP."}
         </p>
 
         {explore.isLoading && (

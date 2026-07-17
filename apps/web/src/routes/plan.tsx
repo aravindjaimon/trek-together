@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { ElevationChart } from "@/components/elevation-chart";
 import { type LatLng, LeafletMap } from "@/components/leaflet-map";
+import { MapSearch } from "@/components/map-search";
 import { RouteSummary } from "@/components/route-summary";
 import { useSession } from "@/lib/auth-client";
 import type { Analysis } from "@/lib/format";
@@ -133,8 +134,12 @@ function PlanPage() {
           waypoints={waypoints}
           fitTo={fitTo}
         />
+        <MapSearch
+          className="absolute top-4 left-4 z-[1000] w-[min(20rem,calc(100%-2rem))]"
+          onSelect={(p) => setFitTo(p.boundingBox ?? [{ lat: p.lat, lng: p.lng }])}
+        />
         {waypoints.length === 0 && (
-          <div className="pointer-events-none absolute inset-x-0 top-4 z-[1000] flex justify-center px-4">
+          <div className="pointer-events-none absolute inset-x-0 top-[4.5rem] z-[999] flex justify-center px-4 lg:top-4">
             <div className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-3.5 py-1.5 text-sm font-medium shadow-sm backdrop-blur">
               <MousePointerClick size={15} className="text-trail" />
               Tap the map to drop your first waypoint
