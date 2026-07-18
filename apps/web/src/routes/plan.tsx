@@ -135,7 +135,7 @@ function PlanPage() {
           fitTo={fitTo}
         />
         <MapSearch
-          className="absolute top-4 left-4 z-[1000] w-[min(20rem,calc(100%-2rem))]"
+          className="absolute top-4 left-4 z-[1100] w-[min(20rem,calc(100%-2rem))]"
           onSelect={(p) => setFitTo(p.boundingBox ?? [{ lat: p.lat, lng: p.lng }])}
         />
         {waypoints.length === 0 && (

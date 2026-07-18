@@ -93,7 +93,7 @@ export function MapSearch({
           }}
           placeholder="Search a place…"
           aria-label="Search for a place"
-          className="h-10 border-border bg-card/95 pr-9 pl-9 shadow-sm backdrop-blur"
+          className="h-10 border-border bg-card/95 text-foreground pr-9 pl-9 shadow-sm backdrop-blur dark:bg-card/95"
         />
         {query.isFetching && (
           <Loader2

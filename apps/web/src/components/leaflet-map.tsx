@@ -62,6 +62,7 @@ export function LeafletMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = L.map(containerRef.current).setView([center.lat, center.lng], zoom);
+    map.zoomControl.setPosition("topright"); // clear the top-left corner for the search box
     L.tileLayer(OSM_URL, { attribution: OSM_ATTR, maxZoom: 19 }).addTo(map);
     map.on("click", (e: L.LeafletMouseEvent) => {
       clickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng });
