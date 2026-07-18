@@ -1,0 +1,39 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Trek Together">
+  <defs>
+    <linearGradient id="bg" x1="512" y1="0" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#18201b"/>
+      <stop offset="1" stop-color="#10140f"/>
+    </linearGradient>
+    <linearGradient id="ridge" x1="512" y1="300" x2="512" y2="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3a7d59"/>
+      <stop offset="1" stop-color="#245039"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed background: opaque so transparent + maskable variants both read intentionally. -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- Mark sits inside the central ~72% safe zone (≈150–874) so platform masks never clip it. -->
+
+  <!-- Back ridge -->
+  <path d="M150 748 L360 430 L520 660 L640 500 L874 748 Z" fill="#20402f"/>
+
+  <!-- Front summit -->
+  <path d="M214 748 L512 316 L810 748 Z" fill="url(#ridge)"/>
+  <!-- Snow cap -->
+  <path d="M512 316 L582 418 L540 432 L512 400 L484 432 L442 418 Z" fill="#f2f5f2"/>
+
+  <!-- Ascending dashed route line, off-white, rounded -->
+  <path d="M236 770 Q352 726 396 668 T486 486 Q506 430 512 356"
+        fill="none" stroke="#f2f5f2" stroke-width="26"
+        stroke-linecap="round" stroke-linejoin="round"
+        stroke-dasharray="6 58"/>
+
+  <!-- Summit marker at the peak -->
+  <circle cx="512" cy="330" r="46" fill="#141a17"/>
+  <circle cx="512" cy="330" r="46" fill="none" stroke="#f2b705" stroke-width="18"/>
+  <circle cx="512" cy="330" r="12" fill="#f2b705"/>
+
+  <!-- Ground line to seat the range -->
+  <rect x="150" y="742" width="724" height="16" rx="8" fill="#0c0f0b"/>
+</svg>
