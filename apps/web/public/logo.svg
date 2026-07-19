@@ -4,36 +4,25 @@
       <stop offset="0" stop-color="#18201b"/>
       <stop offset="1" stop-color="#10140f"/>
     </linearGradient>
-    <linearGradient id="ridge" x1="512" y1="300" x2="512" y2="760" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#3a7d59"/>
-      <stop offset="1" stop-color="#245039"/>
-    </linearGradient>
   </defs>
 
   <!-- Full-bleed background: opaque so transparent + maskable variants both read intentionally. -->
   <rect width="1024" height="1024" fill="url(#bg)"/>
 
-  <!-- Mark sits inside the central ~72% safe zone (≈150–874) so platform masks never clip it. -->
-
-  <!-- Back ridge -->
-  <path d="M150 748 L360 430 L520 660 L640 500 L874 748 Z" fill="#20402f"/>
-
-  <!-- Front summit -->
-  <path d="M214 748 L512 316 L810 748 Z" fill="url(#ridge)"/>
-  <!-- Snow cap -->
-  <path d="M512 316 L582 418 L540 432 L512 400 L484 432 L442 418 Z" fill="#f2f5f2"/>
-
-  <!-- Ascending dashed route line, off-white, rounded -->
-  <path d="M236 770 Q352 726 396 668 T486 486 Q506 430 512 356"
-        fill="none" stroke="#f2f5f2" stroke-width="26"
-        stroke-linecap="round" stroke-linejoin="round"
-        stroke-dasharray="6 58"/>
-
-  <!-- Summit marker at the peak -->
-  <circle cx="512" cy="330" r="46" fill="#141a17"/>
-  <circle cx="512" cy="330" r="46" fill="none" stroke="#f2b705" stroke-width="18"/>
-  <circle cx="512" cy="330" r="12" fill="#f2b705"/>
-
-  <!-- Ground line to seat the range -->
-  <rect x="150" y="742" width="724" height="16" rx="8" fill="#0c0f0b"/>
+  <!-- Same glyph as the in-app BrandMark (contour rings + blaze-orange trail + start
+       node), scaled into the maskable safe zone. Theme tokens resolved to hex:
+       primary green oklch(0.72 0.13 158) ≈ #50BD85, trail oklch(0.72 0.17 52) ≈ #F58028. -->
+  <g transform="translate(512 512) scale(34) translate(-12 -12)">
+    <!-- Contour rings (opacities mirror BrandMark's /35 and /60, nudged up so they
+         survive downscaling to a 64px favicon). -->
+    <path d="M12 3.2a8.8 8.8 0 1 0 0 17.6 8.8 8.8 0 0 0 0-17.6Z"
+          fill="none" stroke="#50BD85" stroke-opacity="0.42" stroke-width="1.4"/>
+    <path d="M12 6.6a5.4 5.4 0 1 0 0 10.8 5.4 5.4 0 0 0 0-10.8Z"
+          fill="none" stroke="#50BD85" stroke-opacity="0.7" stroke-width="1.4"/>
+    <!-- Trail across the terrain -->
+    <path d="M4.5 15.5c2.4.2 3.1-2.3 5-2.6 2.2-.34 2.8 2.1 5 1.6 1.9-.44 2.3-3.1 4.8-3"
+          fill="none" stroke="#F58028" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Start node -->
+    <circle cx="4.5" cy="15.5" r="1.7" fill="#F58028"/>
+  </g>
 </svg>
