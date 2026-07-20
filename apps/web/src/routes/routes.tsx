@@ -79,12 +79,16 @@ function MyRoutesPage() {
       )}
 
       <ul className="mt-6 space-y-3">
-        {list.data?.items.map((r) => (
-          <li key={r.id}>
+        {list.data?.items.map((r, i) => (
+          <li
+            key={r.id}
+            className="animate-reveal-up"
+            style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+          >
             <Link
               to="/r/$id"
               params={{ id: r.id }}
-              className="flex items-center justify-between gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent"
+              className="flex items-center justify-between gap-3 rounded-md border border-border bg-card p-4 shadow-xs transition-all duration-150 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent hover:shadow-md motion-reduce:hover:translate-y-0"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">

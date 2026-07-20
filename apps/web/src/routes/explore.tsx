@@ -161,12 +161,16 @@ function ExplorePage() {
         )}
 
         <ul className="mt-5 space-y-2.5">
-          {items.map((r) => (
-            <li key={r.id}>
+          {items.map((r, i) => (
+            <li
+              key={r.id}
+              className="animate-reveal-up"
+              style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+            >
               <button
                 type="button"
                 onClick={() => navigate({ to: "/r/$id", params: { id: r.id } })}
-                className="group flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-accent"
+                className="group flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card p-3.5 text-left shadow-xs transition-all duration-150 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent hover:shadow-md motion-reduce:hover:translate-y-0"
               >
                 <div className="min-w-0">
                   <div className="truncate font-medium">{r.name}</div>

@@ -37,7 +37,7 @@ export default function Header() {
               <Link
                 key={n.to}
                 to={n.to}
-                className="relative rounded-sm px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground [&.active]:text-foreground [&.active>span]:scale-x-100"
+                className="relative rounded-sm px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground [&.active]:text-primary [&.active>span]:scale-x-100"
               >
                 {n.label}
                 <span className="pointer-events-none absolute inset-x-2.5 -bottom-px h-0.5 origin-left scale-x-0 rounded-full bg-primary transition-transform duration-200 ease-out" />
