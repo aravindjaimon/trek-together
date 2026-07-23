@@ -17,7 +17,6 @@
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate",
     "db:studio": "prisma studio",
-    "db:ui": "docker compose up -d",
     "db:start": "docker compose up -d",
     "db:watch": "docker compose up",
     "db:stop": "docker compose stop",

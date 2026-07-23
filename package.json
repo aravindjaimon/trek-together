@@ -22,7 +22,6 @@
     "db:setup-indexes": "turbo -F @trek-together/db db:setup-indexes",
     "db:ping": "turbo -F @trek-together/db db:ping",
     "db:studio": "turbo -F @trek-together/db db:studio",
-    "db:ui": "turbo -F @trek-together/db db:ui",
     "db:generate": "turbo -F @trek-together/db db:generate",
     "db:migrate": "turbo -F @trek-together/db db:migrate",
     "db:start": "turbo -F @trek-together/db db:start",
