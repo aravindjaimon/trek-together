@@ -1,0 +1,4 @@
+{
+  "environments": ["local", "prod"],
+  "ignore": ["example", "sample", "template"]
+}

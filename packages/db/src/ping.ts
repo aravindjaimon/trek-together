@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 
 // Load the server env (DATABASE_URL) the same way prisma.config.ts does, resolved
 // relative to this file so the smoke check works regardless of the caller's cwd.
-const envPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../../apps/server/.env");
+const envPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../../apps/server/.env.local");
 dotenv.config({ path: envPath });
 
 async function main() {

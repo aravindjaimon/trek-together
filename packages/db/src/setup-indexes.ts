@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 
 // Load the server env (DATABASE_URL) the same way ping.ts / prisma.config.ts do,
 // resolved relative to this file so it works regardless of the caller's cwd.
-const envPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../../apps/server/.env");
+const envPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../../apps/server/.env.local");
 dotenv.config({ path: envPath });
 
 /**
