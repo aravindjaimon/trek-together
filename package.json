@@ -28,6 +28,9 @@
     "db:watch": "turbo -F @trek-together/db db:watch",
     "db:stop": "turbo -F @trek-together/db db:stop",
     "db:down": "turbo -F @trek-together/db db:down",
+    "env:decrypt": "envx decrypt -a",
+    "env:encrypt": "envx encrypt -a",
+    "env:status": "envx status",
     "prepare": "husky"
   },
   "dependencies": {
