@@ -15,6 +15,11 @@ import cors from "cors";
 import express from "express";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
+import { findShadowedAddresses, INSTANCE_HEADER, SELF_CHECK_HEADER } from "./self-check";
+
+// Per-process id, echoed on / and used to tell a real client apart from our
+// own port-ownership probes (see self-check.ts).
+const INSTANCE_ID = randomUUID();
 
 /** oRPC reads the raw stream itself, so the body cap must be its plugin — the
  * express.json limit below never sees /rpc traffic. 1 MiB is generous: a
@@ -44,6 +49,8 @@ app.use((req, res, next) => {
   res.setHeader("x-request-id", requestId);
   const startedAt = Date.now();
   res.on("finish", () => {
+    // Skip access-log noise for our own port-ownership self-checks (self-check.ts).
+    if (req.headers[SELF_CHECK_HEADER] === INSTANCE_ID) return;
     console.log(
       JSON.stringify({
         ts: new Date().toISOString(),
@@ -75,6 +82,9 @@ app.use(
     limit: 300,
     standardHeaders: true,
     legacyHeaders: false,
+    // Our own port-ownership probes (self-check.ts) shouldn't spend the
+    // budget — the header value is a per-process UUID, so unguessable.
+    skip: (req) => req.headers[SELF_CHECK_HEADER] === INSTANCE_ID,
   }),
 );
 
@@ -123,6 +133,7 @@ app.use(async (req, res, next) => {
 app.use(express.json({ limit: "100kb" }));
 
 app.get("/", (_req, res) => {
+  res.setHeader(INSTANCE_HEADER, INSTANCE_ID);
   res.status(200).send("OK");
 });
 
@@ -155,8 +166,31 @@ const errorHandler: express.ErrorRequestHandler = (err, req, res, _next) => {
 };
 app.use(errorHandler);
 
+// A successful listen() doesn't prove clients can reach us — on macOS/BSD a
+// squatter bound to a specific loopback address (e.g. `[::1]:PORT`) can
+// coexist with our wildcard bind, silently stealing `localhost` traffic with
+// no EADDRINUSE. Dev dies loudly on this since a lying "running" log wastes
+// hours; prod only warns, since an unusual localhost-routing setup shouldn't
+// kill an otherwise-healthy server.
+async function checkPortOwnership() {
+  const shadowed = await findShadowedAddresses(env.PORT, INSTANCE_ID);
+  if (shadowed.length === 0) return;
+  console.error(
+    `[startup] PORT ${env.PORT} SHADOWED on ${shadowed.join(", ")} — another process holds that ` +
+      `address, so clients hitting http://localhost:${env.PORT} reach it, not us. ` +
+      `Find it: sudo lsof -nP -iTCP:${env.PORT} -sTCP:LISTEN`,
+  );
+  if (env.NODE_ENV !== "production") process.exit(1);
+}
+
 const server = app.listen(env.PORT, () => {
   console.log(`Server is running on http://localhost:${env.PORT}`);
+  void checkPortOwnership();
+  if (env.NODE_ENV !== "production") {
+    // A squatter can also show up after we've already started — re-check
+    // periodically instead of trusting the one-time startup log forever.
+    setInterval(() => void checkPortOwnership(), 30_000).unref();
+  }
   // Warn loudly (don't crash) when the out-of-band Mongo indexes are missing —
   // a raw `prisma db push` drops them; `pnpm db:push` restores them (T10.9).
   verifyIndexes(prisma)
