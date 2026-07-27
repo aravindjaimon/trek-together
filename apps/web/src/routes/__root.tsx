@@ -1,12 +1,10 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
   HeadContent,
   Outlet,
   useRouterState,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Toaster } from "@trek-together/ui/components/sonner";
 
 import Header from "@/components/header";
@@ -88,12 +86,6 @@ function RootComponent() {
         )}
         <Toaster richColors />
       </ThemeProvider>
-      {import.meta.env.DEV && (
-        <>
-          <TanStackRouterDevtools position="bottom-left" />
-          <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
-        </>
-      )}
     </>
   );
 }
