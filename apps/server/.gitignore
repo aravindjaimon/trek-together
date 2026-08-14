@@ -32,7 +32,6 @@ node_modules/
 .env*
 .env.production
 !.env.example
-!*.gpg
 .dev.vars
 
 # logs

@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://trek-together/schemas/itinerary-1.0.json",
+  "title": "Trek Together Itinerary Export",
+  "description": "Self-contained, offline JSON export of a saved route (T5.3). Produced by routes.exportItinerary format=json. Account-scoped fields (id, ownerId, timestamps) are intentionally omitted — an itinerary is portable data.",
+  "type": "object",
+  "required": [
+    "version",
+    "name",
+    "path",
+    "elevationProfile",
+    "distanceM",
+    "ascentM",
+    "descentM",
+    "estTimeNaismithS",
+    "estTimeToblerS",
+    "difficultyScore",
+    "difficultyBand"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "string", "const": "1.0", "description": "Itinerary schema version." },
+    "name": { "type": "string" },
+    "description": { "type": ["string", "null"] },
+    "path": {
+      "type": "object",
+      "description": "GeoJSON LineString, [lng,lat] coordinate order.",
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": { "type": "string", "const": "LineString" },
+        "coordinates": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "type": "number" }
+          }
+        }
+      }
+    },
+    "elevationProfile": {
+      "type": "array",
+      "description": "Ordered, smoothed elevation samples.",
+      "items": {
+        "type": "object",
+        "required": ["distanceAlongM", "elevationM"],
+        "properties": {
+          "distanceAlongM": { "type": "number" },
+          "elevationM": { "type": "number" }
+        }
+      }
+    },
+    "distanceM": { "type": "number", "description": "Total route distance in metres." },
+    "ascentM": { "type": "number" },
+    "descentM": { "type": "number" },
+    "estTimeNaismithS": { "type": "number", "description": "Naismith time estimate in seconds." },
+    "estTimeToblerS": { "type": "number", "description": "Tobler time estimate in seconds." },
+    "difficultyScore": { "type": "number", "description": "Shenandoah difficulty score." },
+    "difficultyBand": {
+      "type": "string",
+      "enum": ["Easiest", "Moderate", "Moderately Strenuous", "Strenuous", "Very Strenuous"]
+    }
+  }
+}

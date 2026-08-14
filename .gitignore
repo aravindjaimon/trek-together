@@ -5,6 +5,7 @@ node_modules
 
 # Build outputs
 dist
+dist-types
 build
 *.tsbuildinfo
 
@@ -16,6 +17,10 @@ apps/web/src/routeTree.gen.ts
 .env*.local
 .env.prod
 .envrc
+# envx ciphertext. The passphrases live in the gitignored .envrc, so these are
+# not readable — but the repo is public and production secrets live in the
+# Render/Vercel dashboards, so publishing them buys nothing.
+*.gpg
 
 # IDEs and editors
 .vscode/*

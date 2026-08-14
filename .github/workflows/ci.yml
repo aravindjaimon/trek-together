@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [development, main]
+  pull_request:
+    branches: [development, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # No Mongo service: the suites are DB-free by design. The benchmark scripts
+    # (apps/server/scripts/bench-*.ts) do need a live DB and are not in `pnpm test`.
+    env:
+      # The env schemas (packages/env) validate at import time and fail fast.
+      # Nothing here talks to a real service; these only get the modules loaded.
+      SKIP_ENV_VALIDATION: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # Runs packages/db's `postinstall: prisma generate` too, which the
+      # type-check and build both need.
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+      - run: pnpm check-types
+      - run: pnpm test
+      - run: pnpm build

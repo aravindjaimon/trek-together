@@ -31,7 +31,6 @@
 # Environment & local files
 .env*
 !.env.example
-!*.gpg
 .DS_Store
 *.pem
 *.local

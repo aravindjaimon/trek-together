@@ -2,7 +2,10 @@ import { createEnv } from "@t3-oss/env-core";
 import { config } from "dotenv";
 import { z } from "zod";
 
-config({ path: ".env.local" });
+// quiet: dotenv v17 prints a sponsor banner that would be the one non-JSON line
+// in the access log. No-op in production, where env comes from the platform and
+// this file doesn't exist — and it never overrides real process env either way.
+config({ path: ".env.local", quiet: true });
 
 export const env = createEnv({
   server: {

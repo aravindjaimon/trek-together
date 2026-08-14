@@ -2,7 +2,9 @@
   "extends": "@trek-together/config/tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    "outDir": "dist",
+    // NOT "dist" — tsdown owns that (with clean:true) and `start` runs
+    // dist/index.mjs. Sharing the dir let `tsc -b` leave an unstartable build.
+    "outDir": "dist-types",
     "paths": {
       "@/*": ["./src/*"]
     },
