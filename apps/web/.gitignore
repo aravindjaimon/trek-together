@@ -31,6 +31,10 @@
 # Environment & local files
 .env*
 !.env.example
+# Not a secret: VITE_SERVER_URL is the public API origin, and Vite bakes it into
+# the client bundle at build time anyway. Committing it makes the production
+# build reproducible on Vercel, in CI, and locally with no dashboard config.
+!.env.production
 .DS_Store
 *.pem
 *.local
