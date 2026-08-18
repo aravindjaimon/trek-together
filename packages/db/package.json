@@ -10,6 +10,7 @@
     }
   },
   "scripts": {
+    "build": "prisma generate",
     "db:push": "prisma db push && tsx src/setup-indexes.ts",
     "db:setup-indexes": "tsx src/setup-indexes.ts",
     "db:ping": "tsx src/ping.ts",
