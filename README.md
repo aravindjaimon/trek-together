@@ -9,9 +9,13 @@ Capstone project — Scaler Neovarsity / Woolf, MSc Computer Science (Backend Sp
 
 | | |
 |---|---|
-| **Web** | _set after first deploy_ |
-| **API** | _set after first deploy_ |
-| **API reference** | `<api-url>/api-reference` (Scalar, generated from the oRPC router) |
+| **Web** | <https://trek-together-six.vercel.app> |
+| **API** | <https://trek-together.onrender.com> |
+| **API reference** | <https://trek-together.onrender.com/api-reference> (Scalar, generated from the oRPC router) |
+| **Health** | <https://trek-together.onrender.com/health> |
+
+The API runs on Render's free tier, which sleeps after 15 minutes idle — the first request after a
+quiet spell takes ~30s to wake it. Everything after that is warm.
 
 ## What it demonstrates
 
