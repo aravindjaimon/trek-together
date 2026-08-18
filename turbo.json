@@ -18,10 +18,12 @@
       "persistent": true
     },
     "db:push": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["DATABASE_URL"]
     },
     "db:ping": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["DATABASE_URL"]
     },
     "db:generate": {
       "cache": false
